@@ -999,11 +999,11 @@ const vehName=id=>S.vehicleCategories.find(v=>v.id===id)?.name||'';
 function buildAgencies(reqs){const m={};reqs.forEach(r=>{const c=r.customer,k=c.agency.toLowerCase();let a=m[k];if(!a)a=m[k]={id:uid('ag'),name:c.agency,country:c.country,agents:[]};c.agencyId=a.id;if(!a.agents.some(x=>x.email===c.email))a.agents.push({name:c.agent,email:c.email,phone:c.phone})});return Object.values(m)}
 /* data saved by another tab replaces ours, but this tab keeps its own "viewing as" person */
 function adoptFresh(fresh){const cu=S&&S.settings.currentUser;S=fresh;if(cu&&emp(cu))S.settings.currentUser=cu}
-function load(){let fresh=false;try{const t=localStorage.getItem(KEY);if(t)S=JSON.parse(t)}catch(e){}
+function load(){let fresh=false;if(AUTH){if(NET.first())S=NET.build();else{S=seed();fresh=true}}else try{const t=localStorage.getItem(KEY);if(t)S=JSON.parse(t)}catch(e){}
   if(!S){S=seed();fresh=true}
   if(!S.agencies)S.agencies=buildAgencies(S.requests);
   migrate(fresh);save()}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S));return true}catch(e){console.error(e);return false}}
+function save(){if(AUTH){NET.later();return true}try{localStorage.setItem(KEY,JSON.stringify(S));return true}catch(e){console.error(e);return false}}
 function mkSupplier(name,info,by,at,note){const t=at||Date.now();const s={id:uid('sup'),name,categories:[...info.cats],contact:{person:info.person||'',email:info.email||'',phone:info.phone||''},partnership:info.p||'Ad-hoc',active:info.active!==false,notes:info.notes||'',createdAt:t,createdBy:by||'e1',history:[{at:t,by:by||'e1',text:note||'Supplier created'}]};
   if(info.inactiveNote)s.history.push({at:t+D,by:'e1',text:info.inactiveNote});S.suppliers.push(s);return s}
 function migrate(fresh){migrate2(fresh);migrate3(fresh);migrate4(fresh);migrate5(fresh);migrate6(fresh)}
@@ -2132,7 +2132,7 @@ function doCorrect(rid){const r=getReq(rid),why=$('#crr').value.trim(),nv=parseL
 function addNote(rid){const r=getReq(rid),t=$('#note').value.trim();if(!r||!canSee(r))return deny();if(!t)return;r.notes.push({id:uid('n'),at:Date.now(),by:me().id,text:t});log(r,'Internal note added: “'+t.slice(0,80)+(t.length>80?'…':'')+'”',null,{type:'Note'});commit()}
 function setReq(id,f,v){const r=getReq(id);if(!r||!canSee(r))return deny();const old=r[f];if(old===v)return;r[f]=v;log(r,`${{priority:'Priority',subject:'Title',pax:'Pax',currency:'Quote currency'}[f]||f}: ${old??'—'} → ${v??'—'}`,null,{type:'Request',field:f,old,new:v});commit()}
 function setCust(id,f,v){const r=getReq(id);if(!r||!canSee(r))return deny();const old=r.customer[f];r.customer[f]=v;log(r,`Customer ${f}: ${old||'—'} → ${v||'—'}`,null,{type:'Request',field:'customer.'+f,old,new:v});commit()}
-function commit(){if(finRO(me())){try{adoptFresh(JSON.parse(localStorage.getItem(KEY)))}catch(e){}toast('Finance has read-only access to Operations requests','warn');render();return}
+function commit(){if(finRO(me())){if(AUTH){NET.revert();toast('Finance has read-only access to Operations requests','warn');return}try{adoptFresh(JSON.parse(localStorage.getItem(KEY)))}catch(e){}toast('Finance has read-only access to Operations requests','warn');render();return}
   const h=location.hash.slice(1);if(h.startsWith('rq-')){const r=getReq(h.toUpperCase());if(r)syncReqDates(r)}save();render()}
 
 /* ---- Booking workspace ---- */
@@ -3737,7 +3737,7 @@ function toggleRead(id){const n=S.notifications.find(x=>x.id===id);n.read=!n.rea
 function openNotif(id){const n=S.notifications.find(x=>x.id===id);n.read=true;save();NP=false;renderNotif();if(n.link)go(n.link);else render()}
 function markAllRead(){S.notifications.forEach(n=>{if(n.to===me().id)n.read=true});save();renderShell()}
 document.addEventListener('click',e=>{if(NP&&!e.target.closest('#np')&&!e.target.closest('#bell')){NP=false;renderNotif()}});
-function checkBreaches(){let ch=false;const now=Date.now();S.requests.forEach(r=>{r.services.forEach(s=>{const x=lastRound(s);if(x&&!x.respondedAt&&!x.breachNotified&&x.deadline<now){x.breachNotified=true;ch=true;
+function checkBreaches(){if(AUTH&&(!NET.ready||!me()||!isOps(me())))return;let ch=false;const now=Date.now();S.requests.forEach(r=>{r.services.forEach(s=>{const x=lastRound(s);if(x&&!x.respondedAt&&!x.breachNotified&&x.deadline<now){x.breachNotified=true;ch=true;
     const t=`Pricing SLA breached — ${ename(x.managerId)} · ticket ${r.id} · ${s.title} · ${dur(now-x.deadline)} over the ${S.settings.pricingSlaMinutes}-min SLA · status: waiting for pricing`;
     notify([x.managerId,...admins()],t,r.id,true,{by:'system',cat:'sla'});log(r,t,'system',{type:'SLA',svc:s.id})}});
   const q=sla(r);if(['breached'].includes(q.state)){r.slaNotified=r.slaNotified||{};const key=String(q.since);if(!r.slaNotified[key]){r.slaNotified[key]=now;ch=true;
@@ -3749,12 +3749,67 @@ function checkBreaches(){let ch=false;const now=Date.now();S.requests.forEach(r=
     const t=`Payment overdue — ${p.label} · ticket ${r.id} · ${money(Math.max(0,(+p.amount||0)-recd(p)),r.currency)} outstanding since ${fmtDay(dateStr(d))}`;notify([r.assignee,...S.employees.filter(e=>e.canVerify).map(e=>e.id),...admins()].filter(Boolean),t,r.id,true,{by:'system',cat:'payment'});log(r,t,'system',{type:'Payment'})}})});
   if(ch){save();renderShell()}}
 /* ===================== Utilities & boot ===================== */
-function resetDemo(){modal(`<h2>Reset demo data?</h2><p class="muted">All edits are discarded and the sample requests, suppliers and notifications are regenerated relative to the current time.</p><div class="flex" style="justify-content:flex-end"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="S=seed();migrate(true);ND=null;save();closeModal();go();render();toast('Demo data reset')">Reset</button></div>`,'420px')}
+function resetDemo(){if(AUTH)return deny('Not available in the live system');modal(`<h2>Reset demo data?</h2><p class="muted">All edits are discarded and the sample requests, suppliers and notifications are regenerated relative to the current time.</p><div class="flex" style="justify-content:flex-end"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="S=seed();migrate(true);ND=null;save();closeModal();go();render();toast('Demo data reset')">Reset</button></div>`,'420px')}
 function openSettings(){go('admin')}
 function modal(html,w){const sc=$('.md')?.scrollTop||0;$('#modal').innerHTML=`<div class="ov" onclick="if(event.target===this)closeModal()"><div class="md" style="${w?'width:min('+w+',100%)':''}">${html}</div></div>`;const m=$('.md');if(m)m.scrollTop=sc}
 function closeModal(){$('#modal').innerHTML=''}
 function toast(t,kind){const el=document.createElement('div');el.className='tst '+(kind||'');el.textContent=t;$('#toast').appendChild(el);setTimeout(()=>el.remove(),kind==='warn'?5200:2600)}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+/* ===================== Server data (signed-in mode) =====================
+   S is split into documents. Every save() sends only the documents that changed; the server checks permissions and versions.
+   A refused or conflicting save stores nothing: the page goes back to the server's data. */
+const NET=(()=>{
+  const LISTS=['employees','requests','agencies','individuals','hotels','airlines','suppliers','supplierRequests','notifications','drafts','templates','inbox','vehicleCategories','customTypes','adminLog','trips','fin.accounts','fin.txns','fin.payables','fin.statements','fin.advances','fin.audit','hr.cands','hr.interviews','hr.reqs'];
+  const SINGLES=['settings','company','destinations','otherTypes','draftSeq','schema','fin.schema','fin.seq','fin.methods','fin.expCats','fin.expCatOff','fin.policy','fin.demoNote','hr.seq'];
+  const N={ready:false,rev:0,docs:new Map(),sent:new Map(),timer:0,busy:false,failed:false};
+  const at=(o,p)=>p.split('.').reduce((x,k)=>x==null?x:x[k],o);
+  const put=(o,p,v)=>{const ks=p.split('.'),last=ks.pop();let x=o;ks.forEach(k=>{x=x[k]=x[k]||{}});x[last]=v};
+  const key=(c,id)=>c+'\n'+id;
+  function flatten(st){const m=new Map();
+    LISTS.forEach(c=>{const L=at(st,c);if(!Array.isArray(L))return;const n={};L.forEach((d,i)=>{let id=c==='customTypes'?d.key:d.id;if(c==='adminLog'){const b=`${d.at}-${d.by}`;n[b]=(n[b]||0)+1;id=b+'-'+n[b]}if(id==null)return;id=String(id);m.set(key(c,id),{c,id,first:i===0,json:JSON.stringify(d)})})});
+    SINGLES.forEach(id=>{let v=at(st,id);if(v===undefined)return;if(id==='settings'){v={...v};delete v.currentUser}m.set(key('single',id),{c:'single',id,json:JSON.stringify(v)})});
+    return m}
+  function build(docs){const st={lastOpen:{}};LISTS.forEach(c=>put(st,c,[]));
+    [...docs.values()].sort((a,b)=>a.o-b.o).forEach(d=>{const v=JSON.parse(d.json);if(d.c==='single')put(st,d.id,v);else at(st,d.c).push(v)});
+    st.settings=st.settings||{};st.settings.currentUser=AUTH.empId;return st}
+  function take(list){list.forEach(d=>{const k=key(d.c,d.id);if(d.gone)N.docs.delete(k);else N.docs.set(k,{c:d.c,id:d.id,v:d.v,o:d.o,json:JSON.stringify(d.body)})})}
+  const mark=()=>{N.sent=new Map([...flatten(S)].map(([k,d])=>[k,d.json]))};
+  function changes(){const now=flatten(S),out=[];
+    now.forEach((d,k)=>{if(N.sent.get(k)===d.json)return;const s=N.docs.get(k);out.push({c:d.c,id:d.id,v:s?s.v:0,o:s?undefined:(d.first&&N.sent.size?-Date.now():Date.now()),body:JSON.parse(d.json)})});
+    N.sent.forEach((j,k)=>{if(now.has(k))return;const i=k.indexOf('\n'),s=N.docs.get(k);if(s&&k.slice(0,i)!=='single')out.push({c:k.slice(0,i),id:k.slice(i+1),v:s.v,body:null})});
+    return out}
+  async function call(url,body){const r=await fetch(url,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{});
+    if(r.status===401){N.ready=false;location.replace('/login');throw Object.assign(new Error('signed_out'),{status:401})}
+    const d=await r.json();if(!r.ok)throw Object.assign(new Error(d.error||'error'),{status:r.status,why:d.why});return d}
+  function adopt(){const lo=S&&S.lastOpen;S=build(N.docs);S.lastOpen=lo||{};migrate(false);[typeof migrateAdm==='function'&&migrateAdm,typeof migrateDrivers==='function'&&migrateDrivers,typeof migrateHR==='function'&&migrateHR,typeof migratePlates==='function'&&migratePlates].forEach(f=>{try{f&&f()}catch(e){}});S.settings.currentUser=AUTH.empId;mark()}
+  const idle=()=>{const a=document.activeElement;return !$('#modal').innerHTML&&!(typeof POP!=='undefined'&&POP)&&!location.hash.startsWith('#new-request')&&!(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))};
+  async function pull(){const d=await call('/api/data?since='+N.rev);N.rev=d.rev;if(!d.docs.length)return false;take(d.docs);return true}
+  N.revert=()=>{adopt();render()};
+  N.push=async()=>{clearTimeout(N.timer);if(!N.ready||N.busy)return;const ch=changes();if(!ch.length){N.failed=false;return}
+    N.busy=true;const sentNow=new Map(ch.map(x=>[key(x.c,x.id),x.body===null?null:JSON.stringify(x.body)]));
+    try{const r=await call('/api/data/save',{changes:ch});
+      r.saved.forEach(x=>{const k=key(x.c,x.id),j=sentNow.get(k),o=N.docs.get(k);if(j===null)N.docs.delete(k);else N.docs.set(k,{c:x.c,id:x.id,v:x.v,o:o?o.o:(ch.find(y=>key(y.c,y.id)===k).o||Date.now()),json:j})});
+      sentNow.forEach((j,k)=>{if(j===null)N.sent.delete(k);else N.sent.set(k,j)});
+      if(N.failed)toast('Saved');N.failed=false}
+    catch(e){
+      if(e.status===401)return;
+      if(e.status&&e.status<500&&e.status!==429){try{await pull()}catch(x){}
+        N.revert();toast(e.message==='conflict'?'Someone else just changed this. The latest version is shown — please repeat your change.':'Not saved: '+(e.why||'this change is not allowed'),'warn')}
+      else{if(!N.failed)toast('Not saved yet — the connection failed. Trying again…','warn');N.failed=true;N.timer=setTimeout(N.push,5000)}}
+    finally{N.busy=false}
+    if(N.ready&&!N.failed&&changes().length)N.later()};
+  N.later=()=>{if(!N.ready)return;clearTimeout(N.timer);N.timer=setTimeout(N.push,250)};
+  N.poll=async()=>{if(!N.ready||N.busy||N.failed||document.hidden)return;if(changes().length){N.later();return}
+    N.busy=true;try{if(await pull()){if(!changes().length){adopt();if(idle())render();else renderShell()}}}catch(e){}finally{N.busy=false}};
+  N.first=()=>{const d=window.TRAVELOPS_DATA||{rev:0,docs:[]};N.rev=d.rev;take(d.docs);return N.docs.size>0};
+  N.build=()=>build(N.docs);
+  N.start=async()=>{S.settings.currentUser=AUTH.empId;
+    if(!N.docs.size){if(!AUTH.isAdmin){$('#view').innerHTML='<div class="card empty">The system has no data yet. The Admin must sign in first.</div>';return}
+      try{const all=[...flatten(S).values()];await call('/api/data/start',{docs:all.map(d=>({c:d.c,id:d.id,v:0,body:JSON.parse(d.json)}))});await pull()}catch(e){location.reload();return}}
+    mark();N.ready=true;setInterval(N.poll,10000);
+    addEventListener('visibilitychange',()=>{if(!document.hidden)N.poll()});
+    addEventListener('beforeunload',e=>{if(N.ready&&changes().length){N.push();e.preventDefault();e.returnValue=''}})};
+  return N})();
 load();
 if(AUTH){S.settings.currentUser=AUTH.empId;const w=document.querySelector('.who');w.innerHTML=`<b>${esc(AUTH.name)}</b>${AUTH.isAdmin?' <a class="lnk" href="/accounts">Accounts</a>':''} <button class="btn sm" onclick="signOut()">Sign out</button><select id="who" hidden></select>`}
 let LAST_HASH=location.hash.slice(1),NAV_SKIP=false;
@@ -3769,7 +3824,7 @@ setInterval(()=>{document.querySelectorAll('[data-sla]').forEach(el=>{const r=ge
   document.querySelectorAll('[data-ptimer],[data-ppill]').forEach(el=>{const [a,b]=(el.dataset.ptimer||el.dataset.ppill).split('|'),r=getReq(a),s=r&&svcOf(r,b),x=s&&lastRound(s);if(!x||x.respondedAt)return;const t=prTimer(x);if(el.dataset.ptimer){el.className='pq-timer '+t.cls;el.innerHTML=`<b>${t.big}</b><span>${t.small}</span>`}else{el.className='pq-pill '+t.cls;el.innerHTML=prTimerPill(x)}})},1000);
 setInterval(checkBreaches,15000);
 /* another tab or window saved (new email, a colleague took a ticket): refresh the dashboard at once, never while someone is typing */
-window.addEventListener('storage',e=>{if(e.key!==KEY||!e.newValue)return;const h=location.hash.slice(1),a=document.activeElement;if(h&&h!=='dashboard')return;if($('#modal').innerHTML||POP||(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)))return;try{adoptFresh(JSON.parse(e.newValue));render()}catch(x){}});
+window.addEventListener('storage',e=>{if(AUTH||e.key!==KEY||!e.newValue)return;const h=location.hash.slice(1),a=document.activeElement;if(h&&h!=='dashboard')return;if($('#modal').innerHTML||POP||(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)))return;try{adoptFresh(JSON.parse(e.newValue));render()}catch(x){}});
 setInterval(()=>{if((location.hash.slice(1)||'dashboard')==='dashboard'&&(DF.view||'simple')==='simple'&&!$('#modal').innerHTML&&!POP)render()},20000);
 setInterval(()=>{const a=document.activeElement;if(!$('#modal').innerHTML&&!NP&&!POP&&!location.hash.startsWith('#prv-')&&(!a||a===document.body))render()},60000);
 
@@ -5770,7 +5825,8 @@ renderShell=(function(o){return function(){o();const u=me(),h=location.hash.slic
     const ref=nav.querySelector('[data-cars]')||[...nav.querySelectorAll('a')].find(x=>/Reports|Admin/.test(x.textContent));if(ref)(ref.dataset.cars?ref.after(a):ref.before(a));else nav.appendChild(a)}
   if(onHR){nav.querySelectorAll('a').forEach(a=>a.classList.toggle('on',!!a.dataset.hr));const c=h.startsWith('hr~cand~')&&cand(h.slice(8));$('#crumb').textContent='HR'+(c?' · '+c.name:'')}}})(renderShell);
 (function(){try{if(migrateHR())save()}catch(e){console.error(e)}route()})();
-
+/* the server's data is compared from here on: every section above has run its migration */
+if(AUTH)NET.start();
 </script>
 </body>
 </html>

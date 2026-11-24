@@ -23,4 +23,4 @@ To reset the demo, clear this site's storage in the browser and reload.
 
 `npm test` runs the sign-in tests. For local work without MySQL, set `TRAVELOPS_DEV_MEMORY=1` (never in production).
 
-Sign-in protects access to the page. The system's data is still stored in each browser until the data API is added.
+The system's data is stored in the database as documents. `lib/rules.js` decides what each person may read and change; `lib/data.js` saves changes all-or-nothing with version checks. The first Admin to sign in loads the sample data once.

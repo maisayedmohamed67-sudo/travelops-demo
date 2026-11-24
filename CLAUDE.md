@@ -9,7 +9,7 @@ It is a **clickable demo with fake data**. Nothing is connected to a backend: no
 
 ## Stack and layout
 - **One file: `index.html`** (~5,800 lines, ~1 MB). Plain HTML + CSS + vanilla JS. No framework, no build step, no npm packages in the page (the server uses `mysql2`).
-- Node server for hosting: `server.js`, `lib/` (routes, auth, MySQL and memory stores), `web/` (login and accounts pages, Arabic and English), `test/`. It adds `window.TRAVELOPS_USER` to the page for a signed-in person; in `index.html` that is `AUTH` (null in demo mode). Run `npm test` after changing it.
+- Node server for hosting: `server.js`, `lib/` (routes, auth, MySQL and memory stores), `web/` (login and accounts pages, Arabic and English), `test/`. It adds `window.TRAVELOPS_USER` to the page for a signed-in person; in `index.html` that is `AUTH` (null in demo mode). Signed in, `load()`/`save()` go through `NET` (documents sent to `/api/data`) instead of localStorage. A new list or setting in `S` must be added in `NET` and in `lib/rules.js`, or it is not saved. Permissions are enforced in `lib/rules.js`; keep it in step with the page. Run `npm test` after changing it.
 - Only external resource: the Google Fonts `Inter` stylesheet.
 - Order inside the file:
   1. `<style>` (lines ~8–760): base styles, then one block per version (`/* ===== v5 … */`, `/* ---- v12 … */`).
