@@ -24,3 +24,7 @@ To reset the demo, clear this site's storage in the browser and reload.
 `npm test` runs the sign-in tests. For local work without MySQL, set `TRAVELOPS_DEV_MEMORY=1` (never in production).
 
 The system's data is stored in the database as documents. `lib/rules.js` decides what each person may read and change; `lib/data.js` saves changes all-or-nothing with version checks. The first Admin to sign in loads the sample data once.
+
+## Website
+
+The public website is served at `/` (English) and `/ar` (Arabic) from `site/` (content, illustrations, pages). The system is at `/app`. A website request goes through `lib/site-request.js` and becomes a New, unassigned request. `PUBLIC_ORIGIN` (for example `https://www.example.com`) opens the site to search engines; without it every page is noindex.

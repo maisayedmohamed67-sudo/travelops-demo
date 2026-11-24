@@ -68,7 +68,7 @@ $('f').onsubmit=async ev=>{
   $('go').disabled=true;
   try{
     const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    if(r.ok){location.replace('/');return}
+    if(r.ok){location.replace('/app');return}
     err=(await r.json()).error||'other';
   }catch(e){err='other'}
   $('go').disabled=false;draw();

@@ -25,7 +25,7 @@ async function start() {
   if (!(await store.listUsers()).length) {
     await store.createUser({ empId: 'e1', email: 'nadia.farouk@company.example', name: 'Nadia Farouk', isAdmin: true });
   }
-  app = createApp({ store, setupCode: env.SETUP_CODE || '', secure: !dev });
+  app = createApp({ store, setupCode: env.SETUP_CODE || '', secure: !dev, publicOrigin: (env.PUBLIC_ORIGIN || '').replace(/\/+$/, '') });
   setInterval(() => store.purge(Date.now()).catch(e => console.error('purge failed:', e.code || e.message)), 3600000).unref();
   console.log('TravelOps ready');
 }

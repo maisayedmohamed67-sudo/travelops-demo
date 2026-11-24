@@ -25,7 +25,7 @@ async function boot(t) {
 
 test('nothing is served without signing in', async t => {
   const { get } = await boot(t);
-  for (const u of ['/', '/index.html', '/accounts']) {
+  for (const u of ['/app', '/accounts']) {
     const r = await get(u);
     assert.equal(r.status, 302, u);
     assert.equal(r.headers.get('location'), '/login');
@@ -62,13 +62,13 @@ test('sign in, page, sign out', async t => {
   const r = await post('/api/login', { email: ' ADMIN@company.example ', password: PW });
   assert.equal(r.status, 200);
   assert.match(r.headers.get('set-cookie'), /HttpOnly; SameSite=Lax/);
-  const c = sid(r), page = await get('/', c), html = await page.text();
+  const c = sid(r), page = await get('/app', c), html = await page.text();
   assert.equal(page.status, 200);
   assert.equal(page.headers.get('cache-control'), 'no-store');
   assert.match(html, /window\.TRAVELOPS_USER=\{"empId":"e1"/);
   assert.ok(!html.includes('Admin </script><b>'), 'the name is escaped');
   await post('/api/logout', {}, c);
-  assert.equal((await get('/', c)).status, 302);
+  assert.equal((await get('/app', c)).status, 302);
 });
 
 test('an account locks after repeated failures', async t => {
@@ -107,7 +107,7 @@ test('only an Admin manages accounts; links work once; stopping signs out', asyn
   assert.ok(!JSON.stringify(list).includes('s1$'), 'hashes are never sent');
   assert.equal((await post('/api/users/active', { id: 1, active: false }, admin)).status, 400);
   await post('/api/users/active', { id: 2, active: false }, admin);
-  assert.equal((await get('/', omar)).status, 302);
+  assert.equal((await get('/app', omar)).status, 302);
   assert.equal((await post('/api/login', { email: 'omar@company.example', password: PW })).status, 401);
 });
 
@@ -116,7 +116,7 @@ test('a new link resets the password and ends old sessions', async t => {
   const old = await setup();
   const { link } = await (await post('/api/users/invite', { id: 1 }, old)).json();
   assert.equal((await post('/api/activate', { token: link.split('=')[1], password: 'brand new password' })).status, 200);
-  assert.equal((await get('/', old)).status, 302);
+  assert.equal((await get('/app', old)).status, 302);
   assert.equal((await post('/api/login', { email: 'admin@company.example', password: PW })).status, 401);
 });
 
@@ -124,7 +124,7 @@ test('expired sessions and oversized bodies are refused', async t => {
   const { post, get, store } = await boot(t);
   const { hashToken } = require('../lib/auth');
   await store.createSession(hashToken('old'), 1, Date.now() - 1);
-  assert.equal((await get('/', 'sid=old')).status, 302);
+  assert.equal((await get('/app', 'sid=old')).status, 302);
   const r = await post('/api/login', { email: 'a'.repeat(20000), password: PW }).catch(() => ({ status: 413 }));
   assert.equal(r.status, 413);
 });
