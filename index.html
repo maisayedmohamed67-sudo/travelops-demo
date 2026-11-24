@@ -2277,7 +2277,9 @@ function quoteHtml(q){const c=S.company;return `<div class="qdoc"><div class="qd
 function previewQuote(rid,qid){const q=getReq(rid).quotations.find(x=>x.id===qid);modal(`<div class="flex between"><h2>Preview · ${q.id}</h2><div class="flex"><button class="btn sm" onclick="downloadQuote('${rid}','${qid}')">Download PDF</button><button class="btn sm" onclick="closeModal()">Close</button></div></div><div class="small muted">Customer-facing. Supplier costs, margins and internal notes are never included.</div>${quoteHtml(q)}`,'820px')}
 function previewDraftQuote(rid){const r=getReq(rid),q=buildVersion(r);q.id='(draft preview)';modal(`<div class="flex between"><h2>Preview (not yet generated)</h2><button class="btn sm" onclick="closeModal()">Close</button></div>${quoteHtml(q)}`,'820px')}
 async function downloadQuote(rid,qid){const r=getReq(rid),q=r.quotations.find(x=>x.id===qid);const bytes=quotePdf(q);const ok=await offerDownload(bytes,q.id+'.pdf');if(ok){log(r,`Quotation ${q.id} PDF downloaded`,null,{type:'Quotation'});save()}}
-async function offerDownload(bytes,name){window.__lastPdf={name,bytes};let d=null;try{d=window.claude&&window.claude.use?await window.claude.use('downloads'):null}catch(e){d=null}
+/* Outside claude.ai (no window.claude) save with a normal browser download. */
+function browserSave(blob,name){try{const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);toast('Downloading '+name);return true}catch(e){toast('Download failed','warn');return false}}
+async function offerDownload(bytes,name){window.__lastPdf={name,bytes};if(!window.claude)return browserSave(new Blob([bytes],{type:'application/pdf'}),name);let d=null;try{d=window.claude&&window.claude.use?await window.claude.use('downloads'):null}catch(e){d=null}
   if(!d){toast('Downloads aren’t available in this view. Open the page in claude.ai to download. The preview shows the same content.','warn');return false}
   try{await d.save({filename:name,data:new Blob([bytes],{type:'application/pdf'})});toast(name+' saved');return true}catch(e){toast(e&&e.code==='declined'?'Download cancelled':'Download failed: '+(e&&e.code||e),'warn');return false}}
 
@@ -2682,7 +2684,7 @@ function docLinks(docs){return (docs||[]).map(d=>d.data?`<a class="doclink" href
 /* ---- duplicates ---- */
 function dupRef(ref,accountId,exceptId,kind){ref=String(ref||'').trim().toLowerCase();if(!ref)return null;return S.fin.txns.find(t=>t.id!==exceptId&&(!kind||t.kind===kind)&&String(t.ref||'').trim().toLowerCase()===ref&&(!accountId||!t.accountId||t.accountId===accountId)&&!['Rejected','Reversed'].includes(txStatus(t)))||null}
 /* ---- generic download (CSV etc.) ---- */
-async function finDownload(text,name,mime){let d=null;try{d=window.claude&&window.claude.use?await window.claude.use('downloads'):null}catch(e){d=null}
+async function finDownload(text,name,mime){if(!window.claude)return browserSave(new Blob([text],{type:mime||'text/csv'}),name);let d=null;try{d=window.claude&&window.claude.use?await window.claude.use('downloads'):null}catch(e){d=null}
   if(!d){toast('Downloads aren’t available in this view. Open the page in claude.ai to download.','warn');return false}
   try{await d.save({filename:name,data:new Blob([text],{type:mime||'text/csv'})});toast(name+' saved');return true}catch(e){toast(e&&e.code==='declined'?'Download cancelled':'Download failed','warn');return false}}
 const csvCell=v=>{v=v==null?'':String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};

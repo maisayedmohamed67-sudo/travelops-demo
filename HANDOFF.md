@@ -53,12 +53,11 @@ Around this: Finance (payments, approvals, bank reconciliation, reports), Suppli
 
 ## 5. Known limits
 - All data is per browser (localStorage). There is no sharing between users or devices.
-- CSV / PDF downloads only work inside claude.ai (`window.claude.use('downloads')`). Locally they need a fallback.
 - The file is large and built in layers (later versions wrap earlier functions). Edit the last definition of a function.
 
 ## 6. Suggested next steps
 1. **Repo setup:** push to GitHub, then turn on GitHub Pages so the demo has a link that works outside claude.ai.
-2. **Local downloads:** add a Blob + `<a download>` fallback when `window.claude` is missing.
+2. **Local downloads (done):** Blob + `<a download>` fallback (`browserSave`) when `window.claude` is missing.
 3. **Split the file** (optional, its own PR): `index.html` + `css/` + `js/` by module. No behaviour change.
 4. **Backend plan:** move `S` to Supabase tables (requests, services, pricing_rounds, quotes, payments, fin_tx, suppliers, employees…), with row-level security that matches the current roles.
 5. **Integrations:** Outlook / Microsoft Graph for the email conversation, n8n for reminders and supplier emails.

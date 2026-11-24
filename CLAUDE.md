@@ -20,7 +20,7 @@ It is a **clickable demo with fake data**. Nothing is connected to a backend: no
 - Open `index.html` in a browser, or serve the folder: `python3 -m http.server 8000` and go to `http://localhost:8000`.
 - **Data lives in `localStorage` under the key `travelops-proto-v1`.** HR CV files go in IndexedDB `travelops-hr-files`.
 - To reset the demo, clear the site's storage in DevTools (Application → Storage → Clear site data) and reload. The seed data is rebuilt.
-- **Downloads** (CSV and PDF export) go through `window.claude.use('downloads')`, which only exists when the page runs as a claude.ai artifact. Opened locally, they show a toast and do nothing. If you need local downloads, add a fallback in `finDownload` / `downloadQuote` / `downloadConfirmation` using a Blob + `<a download>`.
+- **Downloads** (CSV and PDF export) go through `offerDownload` (PDF) and `finDownload` (CSV). As a claude.ai artifact they use `window.claude.use('downloads')`. Anywhere else (`window.claude` missing) they call `browserSave`, a Blob + `<a download>`. Send new exports through these two functions.
 
 ## Architecture: the important patterns
 - **Global state `S`**: loaded by `load()`, saved by `save()` (whole object as JSON). Every change: mutate `S` → `save()` → `render()`.
