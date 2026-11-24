@@ -8,7 +8,8 @@ Agencies and corporate clients send requests (hotels, transport, VIP airport ass
 It is a **clickable demo with fake data**. Nothing is connected to a backend: no Outlook, n8n, Supabase or payments.
 
 ## Stack and layout
-- **One file: `index.html`** (~5,800 lines, ~1 MB). Plain HTML + CSS + vanilla JS. No framework, no build step, no npm.
+- **One file: `index.html`** (~5,800 lines, ~1 MB). Plain HTML + CSS + vanilla JS. No framework, no build step, no npm packages.
+- `package.json` + `server.js` exist only for Node hosting (Hostinger): `npm start` serves `index.html` and nothing else.
 - Only external resource: the Google Fonts `Inter` stylesheet.
 - Order inside the file:
   1. `<style>` (lines ~8–760): base styles, then one block per version (`/* ===== v5 … */`, `/* ---- v12 … */`).

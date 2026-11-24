@@ -1,0 +1,13 @@
+{
+  "name": "travelops-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TravelOps clickable prototype (static page)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
