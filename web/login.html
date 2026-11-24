@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TravelOps</title>
+<style>
+  :root{--ink:#14213a;--mut:#5b6b88;--line:#d9e0ea;--brand:#2457d6;--bg:#f1f4f9;--bad:#b42318}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;padding:16px;background:var(--bg);color:var(--ink);font:16px/1.6 "Segoe UI",Tahoma,Arial,sans-serif}
+  main{width:100%;max-width:400px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:28px}
+  .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+  .brand{font-weight:700;font-size:20px}
+  h1{font-size:22px;margin:0 0 4px}
+  p{margin:0 0 18px;color:var(--mut)}
+  label{display:block;margin:14px 0 4px;font-weight:600;font-size:14px}
+  input{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:9px;font:inherit;direction:ltr;text-align:start}
+  input:focus-visible,button:focus-visible{outline:3px solid #9db8f5;outline-offset:1px}
+  button{font:inherit;cursor:pointer}
+  .go{width:100%;margin-top:20px;padding:12px;border:0;border-radius:9px;background:var(--brand);color:#fff;font-weight:600}
+  .go:disabled{opacity:.6;cursor:default}
+  .link{border:0;background:none;color:var(--brand);padding:4px}
+  .err{color:var(--bad);margin-top:14px;min-height:1.6em}
+</style>
+</head>
+<body>
+<main>
+  <div class="top"><span class="brand">TravelOps</span><button class="link" id="lang" type="button"></button></div>
+  <h1 id="h"></h1><p id="sub"></p>
+  <form id="f" novalidate>
+    <div id="rowCode"><label for="code" id="lCode"></label><input id="code" type="password" autocomplete="off"></div>
+    <div id="rowEmail"><label for="email" id="lEmail"></label><input id="email" type="email" autocomplete="username"></div>
+    <label for="pw" id="lPw"></label><input id="pw" type="password">
+    <div id="rowPw2"><label for="pw2" id="lPw2"></label><input id="pw2" type="password" autocomplete="new-password"></div>
+    <div class="err" id="err" role="alert"></div>
+    <button class="go" id="go"></button>
+  </form>
+  <button class="link" id="alt" type="button"></button>
+</main>
+<script>
+const T={
+ ar:{other:'English',login:['تسجيل الدخول','بالإيميل وكلمة السر'],activate:['تفعيل الحساب','اختيار كلمة سر جديدة، 10 حروف على الأقل'],setup:['أول تشغيل','تفعيل حساب الـ Admin الأول بكود الإعداد'],email:'الإيميل',pw:'كلمة السر',pw2:'تأكيد كلمة السر',code:'كود الإعداد',goLogin:'دخول',goSave:'حفظ ودخول',toSetup:'أول تشغيل للنظام؟',toLogin:'رجوع لتسجيل الدخول',
+  e:{bad_login:'الإيميل أو كلمة السر غير صحيحة، أو الحساب متوقف مؤقتًا.',too_many:'محاولات كتير. الرجاء الانتظار دقايق.',bad_link:'رابط التفعيل غير صالح أو انتهى. اطلب رابط جديد من الـ Admin.',bad_setup:'كود الإعداد غير صحيح، أو النظام اتفعّل قبل كده.',password_short:'كلمة السر لازم تكون 10 حروف على الأقل.',password_long:'كلمة السر طويلة زيادة.',password_weak:'كلمة السر ضعيفة.',mismatch:'كلمتين السر مش متطابقتين.',busy:'السيرفر مشغول. حاول تاني بعد لحظات.',other:'حصل خطأ. حاول تاني.'}},
+ en:{other:'العربية',login:['Sign in','Use your email and password'],activate:['Activate your account','Choose a new password, at least 10 characters'],setup:['First-time setup','Activate the first Admin with the setup code'],email:'Email',pw:'Password',pw2:'Confirm password',code:'Setup code',goLogin:'Sign in',goSave:'Save and sign in',toSetup:'First-time setup?',toLogin:'Back to sign in',
+  e:{bad_login:'Wrong email or password, or the account is temporarily locked.',too_many:'Too many attempts. Please wait a few minutes.',bad_link:'This activation link is not valid or has expired. Ask your Admin for a new one.',bad_setup:'Wrong setup code, or the system is already set up.',password_short:'The password must be at least 10 characters.',password_long:'The password is too long.',password_weak:'The password is too weak.',mismatch:'The passwords do not match.',busy:'The server is busy. Try again in a moment.',other:'Something went wrong. Please try again.'}}};
+const $=id=>document.getElementById(id);
+let lang='ar';try{lang=localStorage.getItem('travelops-lang')==='en'?'en':'ar'}catch(e){}
+const token=(location.hash.match(/^#activate=([\w-]+)$/)||[])[1]||'';
+if(token)history.replaceState(null,'','/login');
+let mode=token?'activate':'login',err='';
+function draw(){
+  const t=T[lang];document.documentElement.lang=lang;document.documentElement.dir=lang==='ar'?'rtl':'ltr';
+  $('lang').textContent=t.other;$('h').textContent=t[mode][0];$('sub').textContent=t[mode][1];
+  $('lEmail').textContent=t.email;$('lPw').textContent=t.pw;$('lPw2').textContent=t.pw2;$('lCode').textContent=t.code;
+  $('rowEmail').hidden=mode!=='login';$('rowPw2').hidden=mode==='login';$('rowCode').hidden=mode!=='setup';
+  $('pw').autocomplete=mode==='login'?'current-password':'new-password';
+  $('go').textContent=mode==='login'?t.goLogin:t.goSave;
+  $('alt').textContent=mode==='login'?t.toSetup:t.toLogin;
+  $('err').textContent=err?(t.e[err]||t.e.other):'';
+}
+$('lang').onclick=()=>{lang=lang==='ar'?'en':'ar';try{localStorage.setItem('travelops-lang',lang)}catch(e){}draw()};
+$('alt').onclick=()=>{mode=mode==='login'?'setup':'login';err='';draw()};
+$('f').onsubmit=async ev=>{
+  ev.preventDefault();err='';
+  if(mode!=='login'&&$('pw').value!==$('pw2').value){err='mismatch';return draw()}
+  const password=$('pw').value;
+  const [url,body]=mode==='login'?['/api/login',{email:$('email').value,password}]:mode==='setup'?['/api/setup',{code:$('code').value,password}]:['/api/activate',{token,password}];
+  $('go').disabled=true;
+  try{
+    const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(r.ok){location.replace('/');return}
+    err=(await r.json()).error||'other';
+  }catch(e){err='other'}
+  $('go').disabled=false;draw();
+};
+draw();
+</script>
+</body>
+</html>

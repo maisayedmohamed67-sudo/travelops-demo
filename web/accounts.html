@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TravelOps · Accounts</title>
+<style>
+  :root{--ink:#14213a;--mut:#5b6b88;--line:#d9e0ea;--brand:#2457d6;--bg:#f1f4f9;--bad:#b42318}
+  *{box-sizing:border-box}
+  body{margin:0;padding:20px 16px;background:var(--bg);color:var(--ink);font:15px/1.6 "Segoe UI",Tahoma,Arial,sans-serif}
+  main{max-width:900px;margin:auto}
+  .top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  h1{font-size:22px;margin:8px 0}
+  section{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px;margin-top:14px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end}
+  label{display:block;font-weight:600;font-size:13px}
+  input[type=text],input[type=email]{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font:inherit}
+  .scroll{overflow-x:auto}
+  table{width:100%;border-collapse:collapse}
+  th,td{text-align:start;padding:9px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+  button{font:inherit;cursor:pointer;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:#fff}
+  .go{background:var(--brand);color:#fff;border-color:var(--brand)}
+  a{color:var(--brand)}
+  .msg{min-height:1.6em;margin-top:10px}.bad{color:var(--bad)}
+  #link{direction:ltr;text-align:left}
+</style>
+</head>
+<body>
+<main>
+  <div class="top"><a href="/" id="back"></a><button id="lang" type="button"></button></div>
+  <h1 id="h"></h1>
+  <section>
+    <form id="f" class="grid" novalidate>
+      <div><label for="name" id="lName"></label><input id="name" type="text"></div>
+      <div><label for="email" id="lEmail"></label><input id="email" type="email" dir="ltr"></div>
+      <div><label for="empId" id="lEmp"></label><input id="empId" type="text" dir="ltr"></div>
+      <label><input id="isAdmin" type="checkbox"> <span id="lAdmin"></span></label>
+      <button class="go" id="add"></button>
+    </form>
+    <div class="msg" id="msg" role="status"></div>
+    <div id="linkRow" hidden><label for="link" id="lLink"></label><input id="link" type="text" readonly></div>
+  </section>
+  <section class="scroll"><table><thead><tr id="heads"></tr></thead><tbody id="rows"></tbody></table></section>
+</main>
+<script>
+const T={
+ ar:{other:'English',back:'رجوع للنظام',h:'حسابات الموظفين',name:'الاسم',email:'الإيميل',emp:'كود الموظف (زي e2)',admin:'Admin',add:'إضافة حساب',link:'رابط التفعيل: يتبعت للموظف لوحده، وصالح 48 ساعة ولمرة واحدة',heads:['الاسم','الإيميل','الكود','الحالة',''],on:'مفعّل',wait:'في انتظار التفعيل',off:'موقوف',invite:'رابط جديد',stop:'إيقاف',start:'تشغيل',ok:'تم',e:{duplicate:'الإيميل أو الكود موجود قبل كده.',bad_email:'الإيميل غير صحيح.',bad_input:'الاسم أو الكود غير صحيح.',not_yourself:'مينفعش توقف حسابك.',other:'حصل خطأ.'}},
+ en:{other:'العربية',back:'Back to the system',h:'Employee accounts',name:'Name',email:'Email',emp:'Employee code (like e2)',admin:'Admin',add:'Add account',link:'Activation link: send it to this employee only. Valid for 48 hours, one use',heads:['Name','Email','Code','Status',''],on:'Active',wait:'Waiting for activation',off:'Stopped',invite:'New link',stop:'Stop',start:'Start',ok:'Done',e:{duplicate:'This email or code already exists.',bad_email:'The email is not valid.',bad_input:'The name or code is not valid.',not_yourself:'You cannot stop your own account.',other:'Something went wrong.'}}};
+const $=id=>document.getElementById(id);
+let lang='ar',users=[];try{lang=localStorage.getItem('travelops-lang')==='en'?'en':'ar'}catch(e){}
+async function call(url,body){
+  const r=await fetch(url,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{});
+  if(r.status===401){location.replace('/login');throw new Error('signed_out')}
+  const d=await r.json();if(!r.ok)throw new Error(d.error||'other');return d;
+}
+function say(code,bad){const t=T[lang];$('msg').textContent=bad?(t.e[code]||t.e.other):t.ok;$('msg').className='msg'+(bad?' bad':'')}
+function showLink(l){$('linkRow').hidden=!l;$('link').value=l?location.origin+l:'';if(l)$('link').select()}
+async function act(fn){showLink('');try{const d=await fn();if(d.link)showLink(d.link);say('',false);await load()}catch(e){say(e.message,true)}}
+function cell(tr,text){const td=document.createElement('td');td.textContent=text;tr.append(td);return td}
+function draw(){
+  const t=T[lang];document.documentElement.lang=lang;document.documentElement.dir=lang==='ar'?'rtl':'ltr';
+  $('lang').textContent=t.other;$('back').textContent=t.back;$('h').textContent=t.h;$('lName').textContent=t.name;$('lEmail').textContent=t.email;$('lEmp').textContent=t.emp;$('lAdmin').textContent=t.admin;$('add').textContent=t.add;$('lLink').textContent=t.link;
+  $('heads').replaceChildren(...t.heads.map(x=>{const th=document.createElement('th');th.textContent=x;return th}));
+  $('rows').replaceChildren(...users.map(u=>{
+    const tr=document.createElement('tr');cell(tr,u.name+(u.isAdmin?' · Admin':''));cell(tr,u.email);cell(tr,u.empId);cell(tr,!u.active?t.off:u.activated?t.on:t.wait);
+    const td=cell(tr,'');const b=(label,fn)=>{const x=document.createElement('button');x.type='button';x.textContent=label;x.onclick=()=>act(fn);td.append(x,' ')};
+    if(u.active)b(t.invite,()=>call('/api/users/invite',{id:u.id}));
+    b(u.active?t.stop:t.start,()=>call('/api/users/active',{id:u.id,active:!u.active}));
+    return tr}));
+}
+async function load(){users=(await call('/api/users')).users;draw()}
+$('lang').onclick=()=>{lang=lang==='ar'?'en':'ar';try{localStorage.setItem('travelops-lang',lang)}catch(e){}draw()};
+$('f').onsubmit=ev=>{ev.preventDefault();act(()=>call('/api/users',{name:$('name').value,email:$('email').value,empId:$('empId').value,isAdmin:$('isAdmin').checked}))};
+draw();load().catch(e=>say(e.message,true));
+</script>
+</body>
+</html>

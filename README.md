@@ -16,3 +16,11 @@ To reset the demo, clear this site's storage in the browser and reload.
 ## Docs
 - `CLAUDE.md` — code guide for Claude Code
 - `HANDOFF.md` — product context, history and next steps
+
+## Server (sign-in)
+
+`npm start` runs the system behind a login. Settings are environment variables, never files: `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` (optional `DB_PORT`), and `SETUP_CODE` (16+ characters, used once to activate the first Admin, then removed). Without a database the server answers 503.
+
+`npm test` runs the sign-in tests. For local work without MySQL, set `TRAVELOPS_DEV_MEMORY=1` (never in production).
+
+Sign-in protects access to the page. The system's data is still stored in each browser until the data API is added.

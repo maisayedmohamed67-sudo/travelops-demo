@@ -1123,7 +1123,9 @@ function migrate3(fresh){
 }
 
 /* ===================== Accessors ===================== */
-const me=()=>S.employees.find(e=>e.id===S.settings.currentUser);
+/* Set by the server for a signed-in person; missing in demo mode (file opened directly, claude.ai). */
+const AUTH=window.TRAVELOPS_USER||null;
+const me=()=>S.employees.find(e=>e.id===(AUTH?AUTH.empId:S.settings.currentUser));
 const emp=id=>S.employees.find(e=>e.id===id);
 const ename=id=>id==='system'?'System':(emp(id)?.name||'Unassigned');
 const getReq=id=>S.requests.find(r=>r.id===id);
@@ -1387,8 +1389,9 @@ function renderShell(){
   $('#bell').innerHTML=`🔔${un?` <span class="badge b-red" style="padding:0 6px">${un}</span>`:''}`;
   if(NP)renderNotif();
 }
-function render(){route()}
-function switchUser(id){S.settings.currentUser=id;NP=false;save();const u=me(),h=location.hash.slice(1);if(isFinRoute(h)&&!hasFin(u))location.hash='dashboard';else if(hasFin(u)&&!isOps(u)&&!isFinRoute(h))location.hash='fin';render();toast(`Now viewing as ${me().name}`)}
+function render(){if(!me()){$('#view').innerHTML='<div class="card empty">This account is not linked to an employee yet. Ask your Admin.</div>';return}route()}
+async function signOut(){try{await fetch('/api/logout',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})}finally{location.replace('/login')}}
+function switchUser(id){if(AUTH)return deny('Sign out to use another account');S.settings.currentUser=id;NP=false;save();const u=me(),h=location.hash.slice(1);if(isFinRoute(h)&&!hasFin(u))location.hash='dashboard';else if(hasFin(u)&&!isOps(u)&&!isFinRoute(h))location.hash='fin';render();toast(`Now viewing as ${me().name}`)}
 function scopeText(u){let t=u.scope==='all'?'can view all requests':u.scope==='own'?'can view own requests only':'can view own requests + '+(u.visible.map(v=>ename(v)).join(', ')||'nobody else');
   const cats=Object.keys(SVC_TYPES).filter(c=>canPriceCat(u,c));if(cats.length)t+=` · Pricing Manager for ${cats.map(c=>SVC_SHORT[c]).join(', ')}`;if(u.isAdmin)t+=' · Admin';return t}
 
@@ -3753,13 +3756,14 @@ function closeModal(){$('#modal').innerHTML=''}
 function toast(t,kind){const el=document.createElement('div');el.className='tst '+(kind||'');el.textContent=t;$('#toast').appendChild(el);setTimeout(()=>el.remove(),kind==='warn'?5200:2600)}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 load();
+if(AUTH){S.settings.currentUser=AUTH.empId;const w=document.querySelector('.who');w.innerHTML=`<b>${esc(AUTH.name)}</b>${AUTH.isAdmin?' <a class="lnk" href="/accounts">Accounts</a>':''} <button class="btn sm" onclick="signOut()">Sign out</button><select id="who" hidden></select>`}
 let LAST_HASH=location.hash.slice(1),NAV_SKIP=false;
 window.addEventListener('hashchange',()=>{const h=location.hash.slice(1);
   if(NAV_SKIP){NAV_SKIP=false;LAST_HASH=h;return}
   if(LAST_HASH==='new-request'&&h!=='new-request'&&ND&&ND.dirty){NAV_SKIP=true;location.hash='new-request';confirmDiscard(()=>{location.hash=h});return}
   LAST_HASH=h;route();window.scrollTo(0,0)});
 window.addEventListener('beforeunload',e=>{if(ND&&ND.dirty){e.preventDefault();e.returnValue='You have unsaved changes.';return e.returnValue}});
-route();checkBreaches();
+render();if(me())checkBreaches();
 setInterval(()=>{document.querySelectorAll('[data-sla]').forEach(el=>{const r=getReq(el.dataset.sla);if(r)el.innerHTML=slaBadge(r)});
   document.querySelectorAll('[data-psla]').forEach(el=>{const [a,b]=el.dataset.psla.split('|'),r=getReq(a),s=r&&svcOf(r,b);if(s)el.innerHTML=prBadge(lastRound(s))});
   document.querySelectorAll('[data-ptimer],[data-ppill]').forEach(el=>{const [a,b]=(el.dataset.ptimer||el.dataset.ppill).split('|'),r=getReq(a),s=r&&svcOf(r,b),x=s&&lastRound(s);if(!x||x.respondedAt)return;const t=prTimer(x);if(el.dataset.ptimer){el.className='pq-timer '+t.cls;el.innerHTML=`<b>${t.big}</b><span>${t.small}</span>`}else{el.className='pq-pill '+t.cls;el.innerHTML=prTimerPill(x)}})},1000);
