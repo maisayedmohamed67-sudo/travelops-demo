@@ -213,6 +213,13 @@ test('unsafe or malformed data is refused', async () => {
   await tryIt('fin.txns', 'FT-5', { ...TX, id: 'FT-5', createdBy: 'e1', docs: [{ name: 'a', data: 'data:image/png;base64,AAAA' }] });
 });
 
+test('many records can’t be deleted at once', async () => {
+  const { store, no } = await boot();
+  const docs = (await store.loadDocs()).docs.filter(d => d.c === 'employees').slice(0, 4);
+  await no(data.save(store, user('e1'), docs.map(d => ({ c: d.c, id: d.id, v: d.v, body: null }))), 'bad_change');
+  assert.equal((await store.loadDocs()).docs.filter(d => d.c === 'employees' && d.gone).length, 0);
+});
+
 test('the first data can be loaded once, by an Admin', async () => {
   const store = memoryStore();
   await assert.rejects(data.bootstrap(store, user('e2'), SEED), e => e.code === 'not_allowed');
@@ -234,6 +241,6 @@ test('the routes need a session and the right origin', async t => {
   const cookie = (await post('/api/setup', { code: 'setup-code-for-tests-1234', password: 'long enough password' })).headers.get('set-cookie').split(';')[0];
   assert.equal((await post('/api/data/start', { docs: SEED }, { cookie, origin: 'https://evil.example' })).status, 403);
   assert.equal((await post('/api/data/start', { docs: SEED }, { cookie })).status, 200);
-  const page = await (await fetch(base + '/', { headers: { cookie } })).text();
+  const page = await (await fetch(base + '/app', { headers: { cookie } })).text();
   assert.match(page, /window\.TRAVELOPS_DATA=\{"rev":1/);
 });
