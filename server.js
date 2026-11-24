@@ -7,10 +7,15 @@ const port = env.PORT || 3000;
 const dev = env.TRAVELOPS_DEV_MEMORY === '1';
 const missing = ['DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASSWORD'].filter(k => !env[k]);
 
+// Node can resolve localhost to IPv6 (::1), where MySQL is often not listening.
+const dbHost = env.DB_HOST === 'localhost' ? '127.0.0.1' : env.DB_HOST;
+// Enough to diagnose a failure, without messages that could contain settings.
+const describe = e => [e.code || e.name, e.syscall, e.address, e.port, e.errno, String(e.stack || '').split('\n').find(l => /^\s+at /.test(l))].filter(Boolean).join(' ').trim();
+
 let app = null;
 async function start() {
   const store = dev ? require('./lib/store-memory')() : require('./lib/store-mysql')({
-    host: env.DB_HOST, port: Number(env.DB_PORT) || 3306, database: env.DB_NAME, user: env.DB_USER, password: env.DB_PASSWORD
+    host: dbHost, port: Number(env.DB_PORT) || 3306, database: env.DB_NAME, user: env.DB_USER, password: env.DB_PASSWORD
   });
   await store.init();
   if (!(await store.listUsers()).length) {
@@ -22,7 +27,7 @@ async function start() {
 }
 function startWithRetry() {
   start().catch(e => {
-    console.error('start failed:', e.code || e.message);
+    console.error('start failed:', describe(e));
     setTimeout(startWithRetry, 15000);
   });
 }
