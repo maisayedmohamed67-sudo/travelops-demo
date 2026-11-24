@@ -1,4 +1,8 @@
 // TravelOps server. Settings come from environment variables (see README). Only signed-in people get the system page.
+// Some hosts (LiteSpeed) pass the listening socket as fd 0. Opening process.stdin then throws EEXIST, and
+// mysql2 may trigger that through require('process'). This server never reads stdin.
+Object.defineProperty(process, 'stdin', { value: null, configurable: true, enumerable: true });
+
 const http = require('http');
 const createApp = require('./lib/app');
 
@@ -10,7 +14,7 @@ const missing = ['DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASSWORD'].filter(k => !en
 // Node can resolve localhost to IPv6 (::1), where MySQL is often not listening.
 const dbHost = env.DB_HOST === 'localhost' ? '127.0.0.1' : env.DB_HOST;
 // Enough to diagnose a failure, without messages that could contain settings.
-const describe = e => [e.code || e.name, e.syscall, e.address, e.port, e.errno, String(e.stack || '').split('\n').find(l => /^\s+at /.test(l))].filter(Boolean).join(' ').trim();
+const describe = e => [e.code || e.name, e.syscall, e.address, e.port, e.errno, String(e.stack || '').split('\n').filter(l => /^\s+at /.test(l)).slice(0, 8).map(l => l.trim()).join(' < ')].filter(Boolean).join(' ').trim();
 
 let app = null;
 async function start() {
