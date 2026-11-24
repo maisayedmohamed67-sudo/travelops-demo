@@ -3759,7 +3759,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
    S is split into documents. Every save() sends only the documents that changed; the server checks permissions and versions.
    A refused or conflicting save stores nothing: the page goes back to the server's data. */
 const NET=(()=>{
-  const LISTS=['employees','requests','agencies','individuals','hotels','airlines','suppliers','supplierRequests','notifications','drafts','templates','inbox','vehicleCategories','customTypes','adminLog','trips','fin.accounts','fin.txns','fin.payables','fin.statements','fin.advances','fin.audit','hr.cands','hr.interviews','hr.reqs'];
+  const LISTS=['employees','requests','agencies','individuals','hotels','airlines','suppliers','supplierRequests','notifications','drafts','templates','inbox','vehicleCategories','customTypes','adminLog','trips','fin.accounts','fin.txns','fin.payables','fin.statements','fin.advances','fin.audit','hr.cands','hr.interviews','hr.reqs','webTours'];
   const SINGLES=['settings','company','destinations','otherTypes','draftSeq','schema','fin.schema','fin.seq','fin.methods','fin.expCats','fin.expCatOff','fin.policy','fin.demoNote','hr.seq'];
   const N={ready:false,rev:0,docs:new Map(),sent:new Map(),timer:0,busy:false,failed:false};
   const at=(o,p)=>p.split('.').reduce((x,k)=>x==null?x:x[k],o);
@@ -5825,8 +5825,49 @@ renderShell=(function(o){return function(){o();const u=me(),h=location.hash.slic
     const ref=nav.querySelector('[data-cars]')||[...nav.querySelectorAll('a')].find(x=>/Reports|Admin/.test(x.textContent));if(ref)(ref.dataset.cars?ref.after(a):ref.before(a));else nav.appendChild(a)}
   if(onHR){nav.querySelectorAll('a').forEach(a=>a.classList.toggle('on',!!a.dataset.hr));const c=h.startsWith('hr~cand~')&&cand(h.slice(8));$('#crumb').textContent='HR'+(c?' · '+c.name:'')}}})(renderShell);
 (function(){try{if(migrateHR())save()}catch(e){console.error(e)}route()})();
+/* ===================== v27 — Website tours (signed-in mode only) =====================
+   The list in site/content.js with this system's changes (S.webTours) on top. Saving shows on the website within seconds. */
+const SITE=window.TRAVELOPS_SITE||null;
+const canWeb=u=>!!(AUTH&&SITE&&u&&!isDriver(u)&&(u.isAdmin||u.canManageCatalog));
+let WT=null,WTF={kind:'',q:''};
+const wtAll=()=>{const mine=new Map((S.webTours||[]).map(t=>[t.id,t])),base=SITE.base.map(t=>mine.get(t.id)||t),ids=new Set(SITE.base.map(t=>t.id));return [...base,...[...mine.values()].filter(t=>!ids.has(t.id))]};
+const wtOne=id=>wtAll().find(t=>t.id===id);
+const wtPlace=k=>(SITE.places[k]||[k])[0];
+function renderWeb(){const u=me();if(!canWeb(u)){$('#view').innerHTML='<div class="card empty">No access.</div>';return}
+  const q=WTF.q.toLowerCase(),L=wtAll().filter(t=>(!WTF.kind||t.kind===WTF.kind)&&(!q||t.title.join(' ').toLowerCase().includes(q)));
+  $('#view').innerHTML=`<div class="wshead"><div><h2>Website tours</h2><div class="sub small">What visitors see on the website. Changes appear within a few seconds.</div></div><div class="flex"><a class="btn" href="/tours" target="_blank" rel="noopener">Open the website</a><button class="btn primary" onclick="openWeb('')">+ Add tour</button></div></div>
+  <div class="card"><div class="flex wrap" style="margin-bottom:10px"><input class="ctl" id="wtQ" type="search" placeholder="Search by title" value="${esc(WTF.q)}" style="max-width:260px" oninput="WTF.q=this.value;renderWeb();const e=$('#wtQ');e.focus();e.setSelectionRange(e.value.length,e.value.length)">${[['','All'],...Object.entries(SITE.kinds).map(([k,v])=>[k,v[0]])].map(([k,l])=>`<button class="btn sm ${WTF.kind===k?'primary':''}" onclick="WTF.kind='${k}';renderWeb()">${esc(l)}</button>`).join('')}<span class="small muted">${L.length} tours</span></div>
+  <div class="tablewrap"><table class="tbl"><thead><tr><th>Tour</th><th>Arabic title</th><th>Type</th><th class="right">From (USD)</th><th>Status</th><th></th></tr></thead><tbody>${L.map(t=>`<tr data-wt="${esc(t.id)}"><td><b>${esc(t.title[0])}</b>${t.updatedBy?`<div class="small muted">Changed by ${esc(ename(t.updatedBy))}${t.updatedAt?' · '+fmtDT(t.updatedAt):''}</div>`:''}</td><td dir="rtl">${esc(t.title[1])}</td><td class="nowrap">${esc((SITE.kinds[t.kind]||[''])[0])}${t.days>1?' · '+(+t.days)+' days':''}</td><td class="right b">${(+t.price).toLocaleString('en-US')}</td><td>${t.hidden?'<span class="badge b-gray">Hidden</span>':'<span class="badge b-green">On the website</span>'}</td><td class="right nowrap"><button class="btn sm ghost" onclick="openWeb(${jsq(t.id)})">Edit</button></td></tr>`).join('')||'<tr><td colspan="6"><div class="empty">No tours match.</div></td></tr>'}</tbody></table></div></div>`}
+function openWeb(id){if(!canWeb(me()))return deny();const t=id&&wtOne(id);
+  WT=t?JSON.parse(JSON.stringify(t)):{id:'',kind:'day',days:1,price:'',scene:'pyramids',dests:['cairo'],title:['',''],plan:[[]]};WT.isNew=!t;WT.err='';drawWeb()}
+function readWeb(){if(!WT||!$('#wtEn'))return;WT.title=[v$('wtEn'),v$('wtAr')];WT.price=v$('wtPrice');WT.scene=$('#wtScene').value;WT.hidden=!$('#wtOn').checked;WT.dests=Object.keys(SITE.dest).filter(k=>$('#wtD-'+k).checked)}
+function webKind(k){readWeb();WT.kind=k;webDays(k==='package'?Math.max(2,WT.days):1,true)}
+function webDays(n,read){if(!read)readWeb();n=Math.min(30,Math.max(WT.kind==='package'?2:1,Math.round(+n)||1));while(WT.plan.length<n)WT.plan.push([]);if(WT.plan.length>n)WT.plan=WT.plan.slice(0,n);WT.days=n;drawWeb()}
+function webStop(i,k){if(!k)return;readWeb();if(!WT.plan[i].includes(k))WT.plan[i].push(k);drawWeb()}
+function webDrop(i,j){readWeb();WT.plan[i].splice(j,1);drawWeb()}
+function drawWeb(){const opts=Object.entries(SITE.places).sort((a,b)=>a[1][0].localeCompare(b[1][0])).map(([k,v])=>`<option value="${k}">${esc(v[0])}</option>`).join('');
+  modal(`<h2>${WT.isNew?'Add tour':'Edit tour'}</h2><div class="fgrid">${fld('Title in English',`<input class="ctl" id="wtEn" maxlength="120" value="${esc(WT.title[0])}">`,{req:true,id:'wtEn'})}${fld('Title in Arabic',`<input class="ctl" id="wtAr" dir="rtl" maxlength="120" value="${esc(WT.title[1])}">`,{req:true,id:'wtAr'})}
+   ${fld('Type',`<select class="ctl" id="wtKind" onchange="webKind(this.value)">${Object.entries(SITE.kinds).map(([k,v])=>`<option value="${k}" ${k===WT.kind?'selected':''}>${esc(v[0])}</option>`).join('')}</select>`,{req:true,id:'wtKind'})}${fld('Days',`<input class="ctl" id="wtDays" type="number" min="1" max="30" value="${+WT.days}" ${WT.kind==='package'?'':'disabled'} onchange="webDays(this.value)">`,{req:true,id:'wtDays'})}
+   ${fld('Starting price (USD)',`<input class="ctl" id="wtPrice" type="number" min="1" step="1" value="${esc(WT.price)}">`,{req:true,id:'wtPrice'})}${fld('Picture',`<select class="ctl" id="wtScene">${SITE.scenes.map(k=>`<option value="${k}" ${k===WT.scene?'selected':''}>${esc(k)}</option>`).join('')}</select>`,{req:true,id:'wtScene'})}</div>
+   <div class="subh">Destinations</div><div class="flex wrap">${Object.entries(SITE.dest).map(([k,v])=>`<label class="flex"><input type="checkbox" id="wtD-${k}" style="width:auto" ${WT.dests.includes(k)?'checked':''}> ${esc(v[0])}</label>`).join('')}</div>
+   <div class="subh">Route</div>${WT.plan.map((d,i)=>`<div class="flex wrap" style="margin-bottom:8px;align-items:center"><b style="min-width:58px">${WT.kind==='package'?'Day '+(i+1):'Stops'}</b>${d.map((k,j)=>`<span class="badge b-gray">${esc(wtPlace(k))} <button class="linkbtn" aria-label="Remove ${esc(wtPlace(k))}" onclick="webDrop(${i},${j})">✕</button></span>`).join('')}<select class="ctl sm" style="width:170px" aria-label="Add a stop" onchange="webStop(${i},this.value)"><option value="">+ Add a stop</option>${opts}</select></div>`).join('')}
+   <label class="flex" style="margin-top:8px"><input type="checkbox" id="wtOn" style="width:auto" ${WT.hidden?'':'checked'}> Show on the website</label>${WT.err?`<div class="warnbox" role="alert">${esc(WT.err)}</div>`:''}
+   <div class="flex" style="justify-content:flex-end;margin-top:12px"><button class="btn" onclick="WT=null;closeModal()">Cancel</button><button class="btn primary" id="wtSave" onclick="saveWeb()">Save</button></div>`,'760px')}
+function saveWeb(){if(!canWeb(me()))return deny();readWeb();const bad=m=>{WT.err=m;drawWeb()},n=Number(WT.price);
+  if(WT.title.some(x=>x.trim().length<3))return bad('Write the title in English and Arabic.');
+  if(!Number.isInteger(n)||n<1||n>100000)return bad('Write the starting price as a whole number.');
+  if(!WT.dests.length)return bad('Choose at least one destination.');
+  const e=WT.plan.findIndex(d=>!d.length);if(e>=0)return bad(WT.kind==='package'?`Day ${e+1} has no stops.`:'Add at least one stop.');
+  if(WT.isNew){const b=WT.title[0].toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60).replace(/-$/,'');if(b.length<3)return bad('The English title needs letters or numbers.');let id=b,i=2;while(wtOne(id))id=b+'-'+i++;WT.id=id}
+  const t={id:WT.id,kind:WT.kind,days:WT.days,price:n,scene:WT.scene,dests:WT.dests,title:WT.title.map(x=>x.trim()),plan:WT.plan,hidden:!!WT.hidden};
+  S.webTours=S.webTours||[];const at=S.webTours.findIndex(x=>x.id===t.id);if(at>=0)S.webTours[at]=t;else S.webTours.push(t);
+  WT=null;closeModal();save();render();toast('Saved. The website updates in a few seconds.')}
+route=(function(o){return function(){if(location.hash==='#website'&&me()&&!isDriver(me())){closePop();resetRegistries();renderWeb();renderShell();return}o()}})(route);
+renderShell=(function(o){return function(){o();const u=me(),h=location.hash.slice(1),nav=$('#nav');if(!nav||!canWeb(u)||isFinRoute(h))return;
+  if(!nav.querySelector('[data-web]')){const a=document.createElement('a');a.dataset.web='1';a.setAttribute('onclick',"go('website')");a.textContent='Website tours';const ref=nav.querySelector('[data-cars]')||[...nav.querySelectorAll('a')].find(x=>/Suppliers/.test(x.textContent));if(ref)ref.after(a);else nav.appendChild(a)}
+  if(h==='website'){nav.querySelectorAll('a').forEach(a=>a.classList.toggle('on',!!a.dataset.web));$('#crumb').textContent='Website tours'}}})(renderShell);
 /* the server's data is compared from here on: every section above has run its migration */
-if(AUTH)NET.start();
+if(AUTH){if(location.hash==='#website')render();NET.start()}
 </script>
 </body>
 </html>

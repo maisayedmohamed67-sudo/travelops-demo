@@ -1,5 +1,5 @@
 // Renders the public website. Everything is built from site/content.js; nothing from visitors is ever shown.
-const { contact, places, dest, tours, ui } = require('./content');
+const { contact, places, dest, tours: BASE, ui } = require('./content');
 const { scene, panorama } = require('./scenes');
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const money = n => '$' + n.toLocaleString('en-US');
@@ -55,7 +55,7 @@ try{const r=await fetch('/api/site/request',{method:'POST',headers:{'Content-Typ
 document.getElementById('ref').textContent=j.ref;f.hidden=true;const x=document.getElementById('done');x.hidden=false;x.focus()}
 catch(x){e.textContent=E[x.message]||E.other;const el=f.elements[x.message];if(el&&el.focus)el.focus()}b.disabled=false;b.textContent=t})})()`;
 
-function site(lang, origin) {
+function site(lang, origin, tours) {
   const L = lang === 'ar' ? 1 : 0, t = v => v[L], base = L ? '/ar' : '';
   const url = p => base + (p === '/' ? (L ? '' : '/') : p) || '/';
   const pl = k => places[k];
@@ -84,7 +84,7 @@ function site(lang, origin) {
       return page({ path: '/', title: '', desc: t(ui.heroP), body: `<div class="hero"><div class="wrap top"><h1>${esc(t(ui.heroT))}</h1><p>${esc(t(ui.heroP))}</p>
 <form class="mad" action="${url('/request')}" method="get"><label for="m1">${esc(m[0])}</label><select id="m1" name="to">${Object.entries(dest).map(([k, v]) => `<option value="${k}">${esc(t(v))}</option>`).join('')}</select><label for="m2">${esc(m[1])}</label><input id="m2" name="days" type="number" min="1" max="30" value="7"><label for="m3">${esc(m[2])}</label><input id="m3" name="adults" type="number" min="1" max="60" value="2"><span>${esc(m[3])}</span><button class="btn">${esc(t(ui.madGo))}</button></form></div><div class="pan">${panorama()}</div></div>
 <section><div class="wrap"><div class="head"><h2>${esc(t(ui.pkT))}</h2><p>${esc(t(ui.pkP))}</p></div><div class="pk">${tours.filter(x => x.kind === 'package').slice(0, 5).map(row).join('')}</div></div></section>${how}
-<section><div class="wrap"><div class="head"><h2>${esc(t(ui.dyT))}</h2></div><div class="cards">${['half-day-giza-pyramids', 'pyramids-grand-egyptian-museum', 'coptic-islamic-cairo', 'alexandria-day'].map(id => card(tours.find(x => x.id === id))).join('')}</div><p style="margin-top:28px"><a href="${url('/tours')}">${esc(t(ui.allTours))}</a></p></div></section>` });
+<section><div class="wrap"><div class="head"><h2>${esc(t(ui.dyT))}</h2></div><div class="cards">${['half-day-giza-pyramids', 'pyramids-grand-egyptian-museum', 'coptic-islamic-cairo', 'alexandria-day'].map(id => tours.find(x => x.id === id)).filter(Boolean).map(card).join('')}</div><p style="margin-top:28px"><a href="${url('/tours')}">${esc(t(ui.allTours))}</a></p></div></section>` });
     },
     tours(kind) {
       const k = ui.kinds[kind] ? kind : '', L2 = tours.filter(x => !k || x.kind === k);
@@ -120,8 +120,8 @@ function site(lang, origin) {
 }
 
 // Returns { status, html } for a public address, or null when the address is not the website's.
-function route(path, query, origin) {
-  const ar = path === '/ar' || path.startsWith('/ar/'), p = (ar ? path.slice(3) : path) || '/', s = site(ar ? 'ar' : 'en', origin);
+function route(path, query, origin, tours = BASE) {
+  const ar = path === '/ar' || path.startsWith('/ar/'), p = (ar ? path.slice(3) : path) || '/', s = site(ar ? 'ar' : 'en', origin, tours);
   const fixed = { '/': s.home, '/services': s.services, '/about': s.about, '/privacy': s.privacy, '/request': s.request };
   if (Object.prototype.hasOwnProperty.call(fixed, p)) return { status: 200, html: fixed[p]() };
   if (p === '/tours') return { status: 200, html: s.tours(query.get('kind') || '') };
@@ -129,5 +129,5 @@ function route(path, query, origin) {
   if (html) return { status: 200, html };
   return { status: 404, html: s.missing() };
 }
-const sitemap = origin => `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${['/', '/tours', '/services', '/about', '/request', '/privacy', ...tours.map(x => '/tours/' + x.id)].flatMap(p => [p, '/ar' + (p === '/' ? '' : p)]).map(p => `<url><loc>${origin}${p}</loc></url>`).join('')}</urlset>`;
-module.exports = { route, sitemap, tours };
+const sitemap = (origin, tours = BASE) => `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${['/', '/tours', '/services', '/about', '/request', '/privacy', ...tours.map(x => '/tours/' + x.id)].flatMap(p => [p, '/ar' + (p === '/' ? '' : p)]).map(p => `<url><loc>${origin}${p}</loc></url>`).join('')}</urlset>`;
+module.exports = { route, sitemap };

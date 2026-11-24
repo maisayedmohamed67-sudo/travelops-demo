@@ -110,3 +110,43 @@ test('text from visitors is cleaned', async t => {
 test('every illustration is used and drawn', () => {
   for (const x of tours) assert.match(pages.route('/tours/' + x.id, new URLSearchParams(), 'https://x').html, /<svg viewBox="0 0 400 300"/);
 });
+
+const TOUR = { id: 'new-tour', kind: 'day', days: 1, price: 99, scene: 'pyramids', dests: ['cairo'], title: ['New tour', 'رحلة جديدة'], plan: [['giza']] };
+const admin = { empId: 'e1', isAdmin: true };
+const put = (store, who, body, v = 0) => data.save(store, who, [{ c: 'webTours', id: body.id, v, body }]);
+
+test('tours changed in the system show on the website', async () => {
+  const { liveTours } = require('../lib/site-tours');
+  const store = memoryStore();
+  await data.bootstrap(store, admin, SEED);
+  const list = liveTours(store, 0), n = (await list()).length;
+  await put(store, admin, TOUR);
+  await put(store, admin, { ...tours[0], price: 777 });
+  let now = await list();
+  assert.equal(now.length, n + 1);
+  assert.equal(now.find(x => x.id === tours[0].id).price, 777);
+  assert.match(pages.route('/tours/new-tour', new URLSearchParams(), 'https://x', now).html, /\$99/);
+  await put(store, admin, { ...tours[0], price: 777, hidden: true }, 1);
+  now = await list();
+  assert.equal(now.some(x => x.id === tours[0].id), false);
+  assert.equal(pages.route('/tours/' + tours[0].id, new URLSearchParams(), 'https://x', now).status, 404);
+  store.loadList = async () => { throw new Error('down'); };
+  assert.equal((await list()).length, n, 'the last good list stays');
+});
+
+test('only allowed people save tours, and only valid ones', async () => {
+  const store = memoryStore();
+  await data.bootstrap(store, admin, [...SEED, { c: 'employees', id: 'e4', v: 0, body: { id: 'e4', dept: 'Operations', active: true, canManageCatalog: true } }]);
+  const no = (who, body) => assert.rejects(put(store, who, body), e => ['refused', 'bad_change'].includes(e.code));
+  await no({ empId: 'e5', isAdmin: false }, TOUR);
+  for (const bad of [{ price: 0 }, { price: 1.5 }, { price: '99' }, { days: 2 }, { kind: 'x' }, { kind: 'constructor' }, { scene: 'x' }, { dests: [] }, { dests: ['__proto__'] }, { plan: [] }, { plan: [['nowhere']] }, { plan: [[]] },
+    { title: ['x', 'y'] }, { title: ['Only English'] }, { id: 'Bad Id' }, { extra: 1 }, { hidden: 'yes' }]) await no(admin, { ...TOUR, ...bad });
+  await put(store, { empId: 'e4', isAdmin: false }, TOUR);
+  assert.equal((await store.loadList('webTours'))[0].updatedBy, 'e4');
+});
+
+test('titles written in the system are shown as text', () => {
+  const html = pages.route('/tours/new-tour', new URLSearchParams(), 'https://x', [{ ...TOUR, title: ['<img src=x onerror=1>"\'', 'رحلة'] }]).html;
+  assert.ok(!html.includes('<img src=x'));
+  assert.ok(!/<\/script><img/.test(html));
+});

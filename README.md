@@ -28,3 +28,5 @@ The system's data is stored in the database as documents. `lib/rules.js` decides
 ## Website
 
 The public website is served at `/` (English) and `/ar` (Arabic) from `site/` (content, illustrations, pages). The system is at `/app`. A website request goes through `lib/site-request.js` and becomes a New, unassigned request. `PUBLIC_ORIGIN` (for example `https://www.example.com`) opens the site to search engines; without it every page is noindex.
+
+Tours are edited in the system under **Website tours** (Admin or catalogue manager). Changes are stored in the `webTours` list on top of `site/content.js` and checked by `lib/site-tours.js`.

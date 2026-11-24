@@ -43,4 +43,4 @@ function panorama() {
     `<path d="M40 452q40 -12 80 0t80 0 80 0 80 0M700 468q40 -12 80 0t80 0 80 0 80 0M1180 450q40 -12 80 0t80 0 80 0" fill="none" stroke="${C.reed}" stroke-width="4" opacity=".6"/>` +
     sail(420, 462, 1.25) + sail(1010, 446, 0.8) + palm(30, 388, 84) + palm(70, 386, 62) + palm(1450, 388, 90) + palm(1496, 388, 66) + palm(730, 384, 54) + '</svg>';
 }
-module.exports = { scene, panorama, C };
+module.exports = { scene, panorama, C, KINDS: Object.keys(S) };
