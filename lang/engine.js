@@ -18,9 +18,23 @@
   var WORDS = new RegExp('\\b(' + WORD + ')\\b', 'g');
   var has = function (o, k) { return Object.prototype.hasOwnProperty.call(o, k); };
   var cache = new Map();
+  // A date ("Wed 2 Dec, 09:00", "26 Nov 2026"), an amount ("€1,939", "−EGP 0") or a number stands for "#".
+  var CUR = '(?:USD|EUR|EGP|GBP|AED|SAR)\\s?|[€$£]';
+  var TOKEN = new RegExp('(?:(?:' + Object.keys(DAYS).join('|') + '),?\\s)?\\d{1,2}\\s(?:' + Object.keys(MONTHS).join('|') + ')\\b(?:,?\\s\\d{4})?(?:,?\\s\\d{1,2}:\\d{2})?'
+    + '|[+−-]?(?:' + CUR + ')\\d[\\d,.]*|\\d[\\d,.]*\\d|\\d', 'g');
 
+  function withTokens(s) {
+    var toks = s.match(TOKEN);
+    if (!toks) return null;
+    var k = s.replace(TOKEN, '#');
+    if (!has(DICT, k)) return null;
+    var i = 0;
+    return DICT[k].replace(/#/g, function () { var n = toks[i++]; return n === undefined ? '' : n.replace(WORDS, function (w) { return DAYS[w] || MONTHS[w]; }); });
+  }
   function lookup(s) {
     if (has(DICT, s)) return DICT[s];
+    var t = withTokens(s);
+    if (t !== null) return t;
     var nums = s.match(/\d[\d,.]*\d|\d/g);
     if (nums) {
       var k = s.replace(/\d[\d,.]*\d|\d/g, '#');
@@ -42,12 +56,13 @@
     if (!t || t.length > 400 || !/[A-Za-z]/.test(t)) return null;
     if (cache.has(t)) return cache.get(t);
     var out = one(t);
-    if (out === null && t.indexOf(' · ') >= 0) {
-      var any = false, parts = t.split(' · ').map(function (p) { var r = one(p); if (r !== null) any = true; return r === null ? p : r; });
-      if (any) out = parts.join(' · ');
-    }
+    [' · ', ' — '].forEach(function (sep) {
+      if (out !== null || t.indexOf(sep) < 0) return;
+      var any = false, parts = t.split(sep).map(function (p) { var r = one(p); if (r === null) r = translate(p); if (r !== null) any = true; return r === null ? p : r; });
+      if (any) out = parts.join(sep === ' · ' ? ' · ' : ' — ');
+    });
     if (out === null && t.indexOf(': ') > 0) {
-      var i = t.indexOf(': '), a = lookup(t.slice(0, i + 1)) || lookup(t.slice(0, i)), b = one(t.slice(i + 2));
+      var i = t.indexOf(': '), a = lookup(t.slice(0, i + 1)) || lookup(t.slice(0, i)), b = translate(t.slice(i + 2));
       if (a !== null) out = a.replace(/:$/, '') + ': ' + (b === null ? t.slice(i + 2) : b);
     }
     if (out === null && t.indexOf(', ') > 0) {
