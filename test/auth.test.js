@@ -40,7 +40,24 @@ test('setup works once and needs the code', async t => {
   assert.equal((await post('/api/setup', { code: 'wrong', password: PW })).status, 403);
   assert.equal((await post('/api/setup', { code: CODE, password: 'short' })).status, 400);
   assert.ok(await setup());
-  assert.equal((await post('/api/setup', { code: CODE, password: 'another password' })).status, 403);
+  assert.equal((await post('/api/setup', { code: CODE, password: 'another password' })).status, 403, 'no email');
+});
+
+test('a lost Admin password is replaced with the setup code and the Admin email', async t => {
+  const { post, get, setup, store } = await boot(t);
+  assert.equal((await (await get('/api/status')).json()).setup, true);
+  const old = await setup();
+  assert.equal((await (await get('/api/status')).json()).setup, false);
+  await store.createUser({ empId: 'e2', email: 'omar@company.example', name: 'Omar', isAdmin: false });
+  for (let i = 0; i < 8; i++) await post('/api/login', { email: 'admin@company.example', password: 'wrong wrong wrong' });
+  const NEW = 'a brand new password';
+  assert.equal((await post('/api/setup', { code: 'wrong', email: 'admin@company.example', password: NEW })).status, 403);
+  assert.equal((await post('/api/setup', { code: CODE, email: 'omar@company.example', password: NEW })).status, 403, 'Admins only');
+  assert.equal((await post('/api/setup', { code: CODE, email: 'nobody@company.example', password: NEW })).status, 403);
+  assert.equal((await post('/api/setup', { code: CODE, email: ' Admin@company.example ', password: NEW })).status, 200);
+  assert.equal((await get('/app', old)).status, 302, 'old sessions end');
+  assert.equal((await post('/api/login', { email: 'admin@company.example', password: PW })).status, 401);
+  assert.equal((await post('/api/login', { email: 'admin@company.example', password: NEW })).status, 200, 'the lock is cleared');
 });
 
 test('an empty setup code never works', async t => {
@@ -127,4 +144,16 @@ test('expired sessions and oversized bodies are refused', async t => {
   assert.equal((await get('/app', 'sid=old')).status, 302);
   const r = await post('/api/login', { email: 'a'.repeat(20000), password: PW }).catch(() => ({ status: 413 }));
   assert.equal(r.status, 413);
+});
+
+test('the sign-in and accounts pages use only elements and texts they have', () => {
+  const fs = require('node:fs'), path = require('node:path');
+  for (const f of ['login', 'accounts']) {
+    const html = fs.readFileSync(path.join(__dirname, '../web/' + f + '.html'), 'utf8');
+    for (const m of html.matchAll(/\$\('([\w-]+)'\)/g)) assert.ok(html.includes('id="' + m[1] + '"'), f + ': ' + m[1]);
+    const T = new Function(html.match(/const T=(\{[\s\S]*?\}\});/)[0] + 'return T')();
+    const keys = o => Object.keys(o).flatMap(k => (o[k] && typeof o[k] === 'object' && !Array.isArray(o[k]) ? keys(o[k]).map(x => k + '.' + x) : [k])).sort();
+    assert.deepEqual(keys(T.ar), keys(T.en), f);
+    for (const m of html.matchAll(/\bt\.([a-zA-Z]\w*)/g)) assert.ok(m[1] in T.ar, f + ': ' + m[1]);
+  }
 });

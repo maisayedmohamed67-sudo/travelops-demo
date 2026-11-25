@@ -19,7 +19,7 @@ To reset the demo, clear this site's storage in the browser and reload.
 
 ## Server (sign-in)
 
-`npm start` runs the system behind a login. Settings are environment variables, never files: `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` (optional `DB_PORT`), and `SETUP_CODE` (16+ characters, used once to activate the first Admin, then removed). Without a database the server answers 503.
+`npm start` runs the system behind a login. Settings are environment variables, never files: `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` (optional `DB_PORT`), and `SETUP_CODE` (16+ characters: activates the first Admin, and replaces a lost Admin password; remove it when not needed). Without a database the server answers 503.
 
 `npm test` runs the sign-in tests. For local work without MySQL, set `TRAVELOPS_DEV_MEMORY=1` (never in production).
 
