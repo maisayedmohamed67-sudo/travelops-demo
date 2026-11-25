@@ -243,8 +243,8 @@ test('the routes need a session and the right origin', async t => {
   assert.equal((await post('/api/data/start', { docs: SEED }, { cookie })).status, 200);
   assert.equal((await post('/api/files', {})).status, 401);
   assert.equal((await fetch(base + '/api/files/cv1')).status, 401);
-  assert.equal((await post('/api/files', { id: 'cv1', name: 'cv.pdf', data: 'JVBERi0=' }, { cookie })).status, 200);
-  assert.equal((await fetch(base + '/api/files/cv1', { headers: { cookie } })).status, 404);
+  assert.equal((await post('/api/files', { id: 'cv1', name: 'cv.pdf', data: 'JVBERi0=', kind: 'cv' }, { cookie })).status, 200);
+  assert.equal((await fetch(base + '/api/files/cv1', { headers: { cookie } })).status, 200, 'the uploader opens it');
   await data.save(store, user('e1'), [{ c: 'hr.cands', id: 'c1', v: 1, body: { id: 'c1', cv: { id: 'cv1' } } }]);
   const file = await fetch(base + '/api/files/cv1', { headers: { cookie } });
   assert.equal(file.status, 200);
@@ -301,15 +301,17 @@ test('customer messages and the HR request counter are kept', async () => {
 test('CV files: HR adds, HR and the interviewer open', async () => {
   const files = require('../lib/files');
   const { store, put, no } = await boot();
-  const data64 = Buffer.from('%PDF-1.4 test').toString('base64'), add = (who, o) => files.add(store, user(who), { id: 'cv1', name: 'A cv.pdf', data: data64, ...o });
+  const data64 = Buffer.from('%PDF-1.4 test').toString('base64'), add = (who, o) => files.add(store, user(who), { id: 'cv1', name: 'A cv.pdf', data: data64, kind: 'cv', ...o });
   await no(add('e2'));
+  await no(add('d1', { kind: 'doc' }));
   await no(add('e8', { name: 'x.html' }));
   await no(add('e8', { name: 'x.svg' }));
   await no(add('e8', { data: '<script>' }), 'bad_change');
-  await no(add('e8', { data: Buffer.alloc(5 * 1024 * 1024 + 1).toString('base64') }));
+  await no(add('e8', { data: Buffer.alloc(2 * 1024 * 1024 + 1).toString('base64') }), 'bad_change');
+  await no(add('e8', { parts: 26 }), 'bad_change');
   await add('e8');
   await no(add('e8'), 'duplicate');
-  await no(files.get(store, user('e8'), 'cv1'), 'not_found');
+  await no(files.get(store, user('e4'), 'cv1'), 'not_found');
   await put('e8', 'hr.cands', 'c1', c => ({ ...c, cv: { id: 'cv1' } }));
   assert.equal((await files.get(store, user('e8'), 'cv1')).type, 'application/pdf');
   assert.equal((await files.get(store, user('e3'), 'cv1')).body.length, 13);
@@ -320,4 +322,22 @@ test('a new person and the notice to them are saved together', async () => {
   const d = { id: 'd2', name: 'D', isDriver: true, dept: 'Drivers', active: true, fin: {}, see: 'none' }, n = { id: 'n7', to: 'd2', text: 'hi' };
   await no(data.save(store, user('e2'), [{ c: 'employees', id: 'd2', v: 0, body: d }, { c: 'notifications', id: 'n7', v: 0, body: n }]));
   await data.save(store, user('e1'), [{ c: 'employees', id: 'd2', v: 0, body: d }, { c: 'notifications', id: 'n7', v: 0, body: n }]);
+});
+test('large files arrive in parts; files open for those who see the record', async () => {
+  const files = require('../lib/files');
+  const { store, put, no } = await boot();
+  const part = files.PART, big = Buffer.alloc(part * 2 + 5, 7), chunk = i => big.subarray(i * part, (i + 1) * part).toString('base64');
+  const send = (who, i, o) => files.add(store, user(who), { id: 'f1', name: 'invoice.pdf', part: i, parts: 3, data: chunk(i), ...o });
+  await send('e2', 0);
+  await no(send('e3', 1), 'bad_change');
+  await no(send('e2', 1, { parts: 4 }), 'bad_change');
+  await send('e2', 1);
+  await no(files.get(store, user('e2'), 'f1'), 'not_found');
+  await send('e2', 2);
+  assert.equal((await files.get(store, user('e2'), 'f1')).body.length, big.length, 'the uploader opens it');
+  await no(files.get(store, user('e5'), 'f1'), 'not_found');
+  await put('e2', 'fin.txns', 'FT-9', () => ({ ...TX, id: 'FT-9', docs: [{ name: 'invoice.pdf', fileId: 'f1' }] }));
+  assert.ok(await files.get(store, user('e5'), 'f1'), 'Accounting sees the payment, so the file');
+  await no(files.get(store, user('e3'), 'f1'), 'not_found');
+  await no(files.add(store, user('e2'), { id: 'f2', name: 'x.exe', data: chunk(0) }));
 });
