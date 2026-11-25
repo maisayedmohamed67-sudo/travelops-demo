@@ -37,20 +37,21 @@
     <div class="err" id="err" role="alert"></div>
     <button class="go" id="go"></button>
   </form>
+  <p id="tip" style="margin:14px 0 0;font-size:14px"></p>
   <button class="link" id="alt" type="button"></button>
 </main>
 <script>
 const T={
- ar:{other:'English',login:['تسجيل الدخول','بالإيميل وكلمة السر'],activate:['تفعيل الحساب','اختيار كلمة سر جديدة، 10 حروف على الأقل'],setup:['أول تشغيل','حساب الـ Admin لسه ما اتفعّلش. التفعيل بكود الإعداد الموجود في Hostinger (SETUP_CODE)'],recover:['استرجاع كلمة سر الـ Admin','بكود الإعداد الموجود في Hostinger (SETUP_CODE) واختيار كلمة سر جديدة'],email:'الإيميل',pw:'كلمة السر',pw2:'تأكيد كلمة السر',code:'كود الإعداد',goLogin:'دخول',goSave:'حفظ ودخول',toRecover:'نسيت كلمة سر الـ Admin؟',see:'إظهار كلمة السر',toLogin:'رجوع لتسجيل الدخول',
-  e:{bad_login:'الإيميل أو كلمة السر غير صحيحة، أو الحساب متوقف 15 دقيقة بعد محاولات كتير غلط.',too_many:'محاولات كتير. الرجاء الانتظار دقايق.',bad_link:'رابط التفعيل غير صالح أو انتهى. اطلب رابط جديد من الـ Admin.',bad_setup:'كود الإعداد أو إيميل الـ Admin غير صحيح. الكود لازم يكون نفس SETUP_CODE في Hostinger، 16 حرف على الأقل.',password_short:'كلمة السر لازم تكون 10 حروف على الأقل.',password_long:'كلمة السر طويلة زيادة.',password_weak:'كلمة السر ضعيفة.',mismatch:'كلمتين السر مش متطابقتين.',busy:'السيرفر مشغول. حاول تاني بعد لحظات.',other:'حصل خطأ. حاول تاني.'}},
- en:{other:'العربية',login:['Sign in','Use your email and password'],activate:['Activate your account','Choose a new password, at least 10 characters'],setup:['First-time setup','The Admin account is not active yet. Use the setup code from Hostinger (SETUP_CODE)'],recover:['Recover the Admin password','Use the setup code from Hostinger (SETUP_CODE) and choose a new password'],email:'Email',pw:'Password',pw2:'Confirm password',code:'Setup code',goLogin:'Sign in',goSave:'Save and sign in',toRecover:'Lost the Admin password?',see:'Show password',toLogin:'Back to sign in',
-  e:{bad_login:'Wrong email or password, or the account is locked for 15 minutes after many wrong attempts.',too_many:'Too many attempts. Please wait a few minutes.',bad_link:'This activation link is not valid or has expired. Ask your Admin for a new one.',bad_setup:'Wrong setup code or Admin email. The code must match SETUP_CODE in Hostinger, at least 16 characters.',password_short:'The password must be at least 10 characters.',password_long:'The password is too long.',password_weak:'The password is too weak.',mismatch:'The passwords do not match.',busy:'The server is busy. Try again in a moment.',other:'Something went wrong. Please try again.'}}};
+ ar:{other:'English',login:['تسجيل الدخول','بالإيميل وكلمة السر'],activate:['تفعيل الحساب','اختيار كلمة سر جديدة، 10 حروف على الأقل'],setup:['أول تشغيل','حساب الـ Admin لسه ما اتفعّلش. التفعيل بكود الإعداد الموجود في Hostinger (SETUP_CODE)'],recover:['استرجاع كلمة سر الـ Admin','بكود الإعداد الموجود في Hostinger (SETUP_CODE) واختيار كلمة سر جديدة'],email:'الإيميل',pw:'كلمة السر',pw2:'تأكيد كلمة السر',code:'كود الإعداد',goLogin:'دخول',goSave:'حفظ ودخول',toRecover:'نسيت كلمة سر الـ Admin؟',see:'إظهار كلمة السر',tip:'لو نسيت كلمة السر، اطلب رابط تفعيل جديد من الـ Admin.',toLogin:'رجوع لتسجيل الدخول',
+  e:{code_short:'SETUP_CODE في Hostinger أقصر من 16 حرف. عدّله وطبّق التغييرات، وبعدها حدّث الصفحة.',bad_login:'الإيميل أو كلمة السر غير صحيحة، أو الحساب متوقف 15 دقيقة بعد محاولات كتير غلط.',too_many:'محاولات كتير. الرجاء الانتظار دقايق.',bad_link:'رابط التفعيل غير صالح أو انتهى. اطلب رابط جديد من الـ Admin.',bad_setup:'كود الإعداد أو إيميل الـ Admin غير صحيح. الكود لازم يكون نفس SETUP_CODE في Hostinger، 16 حرف على الأقل.',password_short:'كلمة السر لازم تكون 10 حروف على الأقل.',password_long:'كلمة السر طويلة زيادة.',password_weak:'كلمة السر ضعيفة.',mismatch:'كلمتين السر مش متطابقتين.',busy:'السيرفر مشغول. حاول تاني بعد لحظات.',other:'حصل خطأ. حاول تاني.'}},
+ en:{other:'العربية',login:['Sign in','Use your email and password'],activate:['Activate your account','Choose a new password, at least 10 characters'],setup:['First-time setup','The Admin account is not active yet. Use the setup code from Hostinger (SETUP_CODE)'],recover:['Recover the Admin password','Use the setup code from Hostinger (SETUP_CODE) and choose a new password'],email:'Email',pw:'Password',pw2:'Confirm password',code:'Setup code',goLogin:'Sign in',goSave:'Save and sign in',toRecover:'Lost the Admin password?',see:'Show password',tip:'If you forgot your password, ask your Admin for a new activation link.',toLogin:'Back to sign in',
+  e:{code_short:'SETUP_CODE in Hostinger is shorter than 16 characters. Change it, apply the changes, then reload this page.',bad_login:'Wrong email or password, or the account is locked for 15 minutes after many wrong attempts.',too_many:'Too many attempts. Please wait a few minutes.',bad_link:'This activation link is not valid or has expired. Ask your Admin for a new one.',bad_setup:'Wrong setup code or Admin email. The code must match SETUP_CODE in Hostinger, at least 16 characters.',password_short:'The password must be at least 10 characters.',password_long:'The password is too long.',password_weak:'The password is too weak.',mismatch:'The passwords do not match.',busy:'The server is busy. Try again in a moment.',other:'Something went wrong. Please try again.'}}};
 const $=id=>document.getElementById(id);
 let lang='ar';try{lang=localStorage.getItem('travelops-lang')==='en'?'en':'ar'}catch(e){}
 const token=(location.hash.match(/^#activate=([\w-]+)$/)||[])[1]||'';
 if(token)history.replaceState(null,'','/login');
-let mode=token?'activate':'login',err='';
-if(!token)fetch('/api/status').then(r=>r.json()).then(s=>{if(s.setup&&mode==='login'){mode='setup';draw()}}).catch(()=>{});
+let mode=token?'activate':'login',err='',canRecover=false,needSetup=false;
+if(!token)fetch('/api/status').then(r=>r.json()).then(s=>{canRecover=s.code&&!s.setup;needSetup=s.setup;if(s.setup&&mode==='login'){mode='setup';if(!s.code)err='code_short'}draw()}).catch(()=>{});
 function draw(){
   const t=T[lang];document.documentElement.lang=lang;document.documentElement.dir=lang==='ar'?'rtl':'ltr';
   $('lang').textContent=t.other;$('h').textContent=t[mode][0];$('sub').textContent=t[mode][1];
@@ -59,6 +60,7 @@ function draw(){
   $('pw').autocomplete=mode==='login'?'current-password':'new-password';
   $('go').textContent=mode==='login'?t.goLogin:t.goSave;
   $('alt').textContent=mode==='login'?t.toRecover:t.toLogin;
+  $('alt').hidden=mode==='login'?!canRecover:mode==='setup'&&needSetup;$('tip').textContent=t.tip;$('tip').hidden=mode!=='login';
   $('err').textContent=err?(t.e[err]||t.e.other):'';
 }
 $('lang').onclick=()=>{lang=lang==='ar'?'en':'ar';try{localStorage.setItem('travelops-lang',lang)}catch(e){}draw()};

@@ -45,7 +45,7 @@ test('setup works once and needs the code', async t => {
 
 test('a lost Admin password is replaced with the setup code and the Admin email', async t => {
   const { post, get, setup, store } = await boot(t);
-  assert.equal((await (await get('/api/status')).json()).setup, true);
+  assert.deepEqual(await (await get('/api/status')).json(), { setup: true, code: true });
   const old = await setup();
   assert.equal((await (await get('/api/status')).json()).setup, false);
   await store.createUser({ empId: 'e2', email: 'omar@company.example', name: 'Omar', isAdmin: false });

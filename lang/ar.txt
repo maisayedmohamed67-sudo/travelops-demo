@@ -477,7 +477,7 @@ Or paste the email header (From / Sent / Subject): fills title, subject and the 
 Collect supplier costs, then send ready services for pricing approval. = اجمع تكاليف الموردين، ثم أرسل الخدمات الجاهزة لاعتماد السعر.
 Measured from the original received time. Supplier or pricing waits don’t pause it. = يُحسب من وقت الاستلام الأصلي، ولا يتوقف أثناء انتظار المورد أو التسعير.
 Book each service with its supplier. Each card shows only the fields that service needs. A confirmation number is required before a service is marked Confirmed. = احجز كل خدمة مع موردها. كل بطاقة تعرض الحقول المطلوبة فقط، ورقم التأكيد مطلوب قبل تعليم الخدمة كمؤكدة.
-Prototype: the file name and size are recorded; the file itself is not uploaded anywhere. = يُسجل اسم الملف وحجمه فقط، ولا يُرفع الملف نفسه.
+Only the file name and size are recorded; the file itself is not uploaded. = يُسجل اسم الملف وحجمه فقط، ولا يُرفع الملف نفسه.
 Enter the supplier confirmation number before marking this service Confirmed. = اكتب رقم تأكيد المورد قبل تعليم الخدمة كمؤكدة.
 Correct = تصحيح
 Travel = السفر
