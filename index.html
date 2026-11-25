@@ -3738,7 +3738,7 @@ function toggleRead(id){const n=S.notifications.find(x=>x.id===id);n.read=!n.rea
 function openNotif(id){const n=S.notifications.find(x=>x.id===id);n.read=true;save();NP=false;renderNotif();if(n.link)go(n.link);else render()}
 function markAllRead(){S.notifications.forEach(n=>{if(n.to===me().id)n.read=true});save();renderShell()}
 document.addEventListener('click',e=>{if(NP&&!e.target.closest('#np')&&!e.target.closest('#bell')){NP=false;renderNotif()}});
-function checkBreaches(){if(AUTH&&(!NET.ready||!me()||!isOps(me())))return;let ch=false;const now=Date.now();S.requests.forEach(r=>{r.services.forEach(s=>{const x=lastRound(s);if(x&&!x.respondedAt&&!x.breachNotified&&x.deadline<now){x.breachNotified=true;ch=true;
+function checkBreaches(){if(AUTH&&(!NET.ready||!me()||!isOps(me())||NET.dirty()))return;let ch=false;const now=Date.now();S.requests.forEach(r=>{r.services.forEach(s=>{const x=lastRound(s);if(x&&!x.respondedAt&&!x.breachNotified&&x.deadline<now){x.breachNotified=true;ch=true;
     const t=`Pricing SLA breached — ${ename(x.managerId)} · ticket ${r.id} · ${s.title} · ${dur(now-x.deadline)} over the ${S.settings.pricingSlaMinutes}-min SLA · status: waiting for pricing`;
     notify([x.managerId,...admins()],t,r.id,true,{by:'system',cat:'sla'});log(r,t,'system',{type:'SLA',svc:s.id})}});
   const q=sla(r);if(['breached'].includes(q.state)){r.slaNotified=r.slaNotified||{};const key=String(q.since);if(!r.slaNotified[key]){r.slaNotified[key]=now;ch=true;
@@ -3748,7 +3748,7 @@ function checkBreaches(){if(AUTH&&(!NET.ready||!me()||!isOps(me())))return;let c
     const t=`Supplier response overdue — ${supName(s)||'supplier'} · ticket ${r.id} · ${s.title} · due ${fmtLocal(localStr(c.responseDeadline))}`;notify([r.assignee||null,...admins()].filter(Boolean),t,r.id,true,{by:'system',cat:'supplier'});log(r,t,'system',{type:'Supplier',svc:s.id})}});
   if(schedActive(r)&&!r.completedAt)r.payments.forEach(p=>{const d=instDue(p);if(d&&d<now&&payState(p)!=='Paid'&&p.overdueNotified!==d){p.overdueNotified=d;ch=true;
     const t=`Payment overdue — ${p.label} · ticket ${r.id} · ${money(Math.max(0,(+p.amount||0)-recd(p)),r.currency)} outstanding since ${fmtDay(dateStr(d))}`;notify([r.assignee,...S.employees.filter(e=>e.canVerify).map(e=>e.id),...admins()].filter(Boolean),t,r.id,true,{by:'system',cat:'payment'});log(r,t,'system',{type:'Payment'})}})});
-  if(ch){save();renderShell()}}
+  if(ch){if(AUTH)NET.quiet=true;save();renderShell()}}
 /* ===================== Utilities & boot ===================== */
 function resetDemo(){if(AUTH)return deny('Not available in the live system');modal(`<h2>Reset demo data?</h2><p class="muted">All edits are discarded and the sample requests, suppliers and notifications are regenerated relative to the current time.</p><div class="flex" style="justify-content:flex-end"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="S=seed();migrate(true);ND=null;save();closeModal();go();render();toast('Demo data reset')">Reset</button></div>`,'420px')}
 function openSettings(){go('admin')}
@@ -3760,8 +3760,8 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
    S is split into documents. Every save() sends only the documents that changed; the server checks permissions and versions.
    A refused or conflicting save stores nothing: the page goes back to the server's data. */
 const NET=(()=>{
-  const LISTS=['employees','requests','agencies','individuals','hotels','airlines','suppliers','supplierRequests','notifications','drafts','templates','inbox','vehicleCategories','customTypes','adminLog','trips','fin.accounts','fin.txns','fin.payables','fin.statements','fin.advances','fin.audit','hr.cands','hr.interviews','hr.reqs','webTours'];
-  const SINGLES=['settings','company','destinations','otherTypes','draftSeq','schema','fin.schema','fin.seq','fin.methods','fin.expCats','fin.expCatOff','fin.policy','fin.demoNote','hr.seq'];
+  const LISTS=['employees','requests','agencies','individuals','hotels','airlines','suppliers','supplierRequests','notifications','drafts','templates','inbox','vehicleCategories','customTypes','adminLog','trips','fin.accounts','fin.txns','fin.payables','fin.statements','fin.advances','fin.audit','fin.custMsgs','hr.cands','hr.interviews','hr.reqs','webTours'];
+  const SINGLES=['settings','company','destinations','otherTypes','draftSeq','schema','fin.schema','fin.seq','fin.methods','fin.expCats','fin.expCatOff','fin.policy','fin.demoNote','hr.seq','hr.rseq'];
   const N={ready:false,rev:0,docs:new Map(),sent:new Map(),timer:0,busy:false,failed:false};
   const at=(o,p)=>p.split('.').reduce((x,k)=>x==null?x:x[k],o);
   const put=(o,p,v)=>{const ks=p.split('.'),last=ks.pop();let x=o;ks.forEach(k=>{x=x[k]=x[k]||{}});x[last]=v};
@@ -3785,9 +3785,10 @@ const NET=(()=>{
   function adopt(){const lo=S&&S.lastOpen;S=build(N.docs);S.lastOpen=lo||{};migrate(false);[typeof migrateAdm==='function'&&migrateAdm,typeof migrateDrivers==='function'&&migrateDrivers,typeof migrateHR==='function'&&migrateHR,typeof migratePlates==='function'&&migratePlates].forEach(f=>{try{f&&f()}catch(e){}});S.settings.currentUser=AUTH.empId;mark()}
   const idle=()=>{const a=document.activeElement;return !$('#modal').innerHTML&&!(typeof POP!=='undefined'&&POP)&&!location.hash.startsWith('#new-request')&&!(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))};
   async function pull(){const d=await call('/api/data?since='+N.rev);N.rev=d.rev;if(!d.docs.length)return false;take(d.docs);return true}
+  N.dirty=()=>N.busy||changes().length>0;
   N.revert=()=>{adopt();render()};
   N.push=async()=>{clearTimeout(N.timer);if(!N.ready||N.busy)return;const ch=changes();if(!ch.length){N.failed=false;return}
-    N.busy=true;const sentNow=new Map(ch.map(x=>[key(x.c,x.id),x.body===null?null:JSON.stringify(x.body)]));
+    N.busy=true;const quiet=N.quiet;N.quiet=false;const sentNow=new Map(ch.map(x=>[key(x.c,x.id),x.body===null?null:JSON.stringify(x.body)]));
     try{const r=await call('/api/data/save',{changes:ch});
       r.saved.forEach(x=>{const k=key(x.c,x.id),j=sentNow.get(k),o=N.docs.get(k);if(j===null)N.docs.delete(k);else N.docs.set(k,{c:x.c,id:x.id,v:x.v,o:o?o.o:(ch.find(y=>key(y.c,y.id)===k).o||Date.now()),json:j})});
       sentNow.forEach((j,k)=>{if(j===null)N.sent.delete(k);else N.sent.set(k,j)});
@@ -3795,6 +3796,7 @@ const NET=(()=>{
     catch(e){
       if(e.status===401)return;
       if(e.status&&e.status<500&&e.status!==429){try{await pull()}catch(x){}
+        if(quiet){adopt();if(idle())render();return}
         N.revert();toast(e.message==='conflict'?'Someone else just changed this. The latest version is shown — please repeat your change.':'Not saved: '+(e.why||'this change is not allowed'),'warn')}
       else{if(!N.failed)toast('Not saved yet — the connection failed. Trying again…','warn');N.failed=true;N.timer=setTimeout(N.push,5000)}}
     finally{N.busy=false}
@@ -5695,8 +5697,8 @@ const hrLeadDept=u=>u.isAdmin?'':(u.dept||'Operations');
 /* ---------- CV files: kept in the browser's file store (IndexedDB), not in the main data ---------- */
 let _hrdb=null;const HRMEM={};
 function hrDB(){if(_hrdb)return _hrdb;_hrdb=new Promise((res,rej)=>{try{const q=indexedDB.open('travelops-hr-files',1);q.onupgradeneeded=()=>q.result.createObjectStore('f');q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)}catch(e){rej(e)}});return _hrdb}
-async function cvPut(id,blob){HRMEM[id]=blob;try{const db=await hrDB();await new Promise((res,rej)=>{const t=db.transaction('f','readwrite');t.objectStore('f').put(blob,id);t.oncomplete=res;t.onerror=()=>rej(t.error)});return true}catch(e){return false}}
-async function cvGet(id){if(HRMEM[id])return HRMEM[id];try{const db=await hrDB();return await new Promise((res,rej)=>{const q=db.transaction('f').objectStore('f').get(id);q.onsuccess=()=>res(q.result||null);q.onerror=()=>rej(q.error)})}catch(e){return null}}
+async function cvPut(id,blob){HRMEM[id]=blob;if(AUTH){if(blob.size>5*1024*1024){deny('The file must be smaller than 5 MB');return false}const data=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]||'');r.onerror=rej;r.readAsDataURL(blob)});const x=await fetch('/api/files',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,name:blob.name,data})});if(!x.ok){delete HRMEM[id];const j=await x.json().catch(()=>({}));deny(j.why||'The CV was not uploaded')}return x.ok}try{const db=await hrDB();await new Promise((res,rej)=>{const t=db.transaction('f','readwrite');t.objectStore('f').put(blob,id);t.oncomplete=res;t.onerror=()=>rej(t.error)});return true}catch(e){return false}}
+async function cvGet(id){if(HRMEM[id])return HRMEM[id];if(AUTH){const x=await fetch('/api/files/'+encodeURIComponent(id));return x.ok?await x.blob():null}try{const db=await hrDB();return await new Promise((res,rej)=>{const q=db.transaction('f').objectStore('f').get(id);q.onsuccess=()=>res(q.result||null);q.onerror=()=>rej(q.error)})}catch(e){return null}}
 async function openCV(cid){const c=cand(cid);if(!c||!c.cv)return;if(!canSeeCand(me(),c))return deny();const b=await cvGet(c.cv.id);if(!b)return deny('The CV file is not in this browser (it was uploaded on another device or the browser data was cleared)');
   const url=URL.createObjectURL(b),a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';if(!/pdf|image/.test(b.type))a.download=c.cv.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000)}
 let CVPICK=null;
@@ -5750,7 +5752,7 @@ async function saveCand(id){const u=me();if(!isHR(u))return deny();const n=(v$('
   if(dup&&!window.__hrDupOK){window.__hrDupOK=true;return deny(`${dup.name} already has this email or mobile — click again to add anyway`)}window.__hrDupOK=false;
   let c=id?cand(id):null;const isNew=!c;if(!c){S.hr.seq=(S.hr.seq||0)+1;c={id:'CA-'+String(S.hr.seq).padStart(3,'0'),stage:'New',at:Date.now(),by:u.id,history:[]};S.hr.cands.push(c)}
   Object.assign(c,{name:n,position:pos,phone:ph,email:em,reqId:v$('cnReq'),source:v$('cnSrc'),notes:v$('cnNotes')});
-  if(CVPICK){const f=CVPICK,fid=uid('cv');const ok=await cvPut(fid,f);c.cv={id:fid,name:f.name,size:f.size,type:f.type,at:Date.now(),by:u.id};hrHist(c,`CV uploaded · ${f.name}${ok?'':' (kept only until the page is closed)'}`)}
+  if(CVPICK){const f=CVPICK,fid=uid('cv')+Date.now().toString(36);const ok=await cvPut(fid,f);if(AUTH&&!ok){if(isNew)S.hr.cands=S.hr.cands.filter(x=>x!==c);return}c.cv={id:fid,name:f.name,size:f.size,type:f.type,at:Date.now(),by:u.id};hrHist(c,`CV uploaded · ${f.name}${ok?'':' (kept only until the page is closed)'}`)}
   hrHist(c,isNew?'Candidate added':'Details changed');CVPICK=null;closeModal();save();if(isNew)location.hash='hr~cand~'+c.id;else render();toast(isNew?`${n} added`:'Saved')}
 function renderCand(id){const u=me(),c=cand(id);if(!c||!canSeeCand(u,c)){$('#view').innerHTML=`<a class="pq-back" href="#hr">‹ HR</a><div class="card empty" style="margin-top:12px">Candidate not found or not shared with you.</div>`;return}
   const hr=isHR(u),I=S.hr.interviews.filter(i=>i.candId===id).sort((a,b)=>ivTs(b)-ivTs(a)),r=c.reqId&&hrq(c.reqId);

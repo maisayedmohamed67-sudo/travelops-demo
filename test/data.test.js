@@ -241,6 +241,83 @@ test('the routes need a session and the right origin', async t => {
   const cookie = (await post('/api/setup', { code: 'setup-code-for-tests-1234', password: 'long enough password' })).headers.get('set-cookie').split(';')[0];
   assert.equal((await post('/api/data/start', { docs: SEED }, { cookie, origin: 'https://evil.example' })).status, 403);
   assert.equal((await post('/api/data/start', { docs: SEED }, { cookie })).status, 200);
+  assert.equal((await post('/api/files', {})).status, 401);
+  assert.equal((await fetch(base + '/api/files/cv1')).status, 401);
+  assert.equal((await post('/api/files', { id: 'cv1', name: 'cv.pdf', data: 'JVBERi0=' }, { cookie })).status, 200);
+  assert.equal((await fetch(base + '/api/files/cv1', { headers: { cookie } })).status, 404);
+  await data.save(store, user('e1'), [{ c: 'hr.cands', id: 'c1', v: 1, body: { id: 'c1', cv: { id: 'cv1' } } }]);
+  const file = await fetch(base + '/api/files/cv1', { headers: { cookie } });
+  assert.equal(file.status, 200);
+  assert.equal(file.headers.get('content-type'), 'application/pdf');
+  assert.match(file.headers.get('content-disposition'), /^attachment; filename\*=UTF-8''cv\.pdf$/);
   const page = await (await fetch(base + '/app', { headers: { cookie } })).text();
-  assert.match(page, /window\.TRAVELOPS_DATA=\{"rev":1/);
+  assert.match(page, /window\.TRAVELOPS_DATA=\{"rev":\d/);
+});
+
+test('the Admin right follows the system', async () => {
+  const { store, put, no } = await boot();
+  await put('e1', 'employees', 'e2', e => ({ ...e, isAdmin: true }));
+  assert.equal(await data.isAdmin(store, user('e2')), true);
+  await put('e2', 'suppliers', 'sup1', s => ({ ...s, name: 'By the new Admin' }));
+  await put('e2', 'employees', 'e1', e => ({ ...e, isAdmin: false }));
+  assert.equal(await data.isAdmin(store, user('e1')), false, 'the account flag alone is not enough');
+  await no(put('e1', 'suppliers', 'sup1', s => ({ ...s, name: 'X' })));
+});
+
+test('an interviewer records the result, and nothing else', async () => {
+  const { store, put, no } = await boot();
+  const at = id => store.loadDocs().then(r => r.docs.find(d => d.id === id));
+  const i = await at('i1'), c = await at('c1');
+  await data.save(store, user('e3'), [
+    { c: 'hr.interviews', id: 'i1', v: i.v, body: { ...i.body, status: 'Done', result: 'Good' } },
+    { c: 'hr.cands', id: 'c1', v: c.v, body: { ...c.body, history: [{ at: 1, by: 'e3', text: 'Interview done' }] } }
+  ]);
+  await no(put('e3', 'hr.cands', 'c1', x => ({ ...x, stage: 'Hired' })));
+  await no(put('e3', 'hr.cands', 'c1', x => ({ ...x, history: [...x.history, { by: 'e8', text: 'forged' }] })));
+  await no(put('e3', 'hr.cands', 'c1', x => ({ ...x, history: [] })));
+});
+
+test('bank reconciliation is approved only by those allowed', async () => {
+  const { put, no } = await boot();
+  await put('e1', 'single', 'fin.policy', p => ({ ...p, recon: { needsApproval: true } }));
+  await put('e1', 'employees', 'e5', e => ({ ...e, fin: { ...e.fin, importStmt: true, reconcile: true } }));
+  await put('e1', 'employees', 'e3', e => ({ ...e, fin: { approveRecon: true } }));
+  await put('e5', 'fin.statements', 'ST-1', () => ({ id: 'ST-1', lines: [], reconciledAt: null }));
+  await no(put('e5', 'fin.statements', 'ST-1', s => ({ ...s, reconciledAt: 5 })));
+  await put('e3', 'fin.statements', 'ST-1', s => ({ ...s, reconciledAt: 5 }));
+  await put('e3', 'fin.accounts', 'acc1', a => ({ ...a, stmtBalance: 7 }));
+  await no(put('e5', 'fin.statements', 'ST-1', s => ({ ...s, lines: [1] })));
+});
+
+test('customer messages and the HR request counter are kept', async () => {
+  const { store, put, no } = await boot();
+  await put('e5', 'fin.custMsgs', 'm1', () => ({ id: 'm1', by: 'e5', ck: 'x' }));
+  await no(put('e2', 'fin.custMsgs', 'm2', () => ({ id: 'm2', by: 'e2' })));
+  await no(put('e5', 'fin.custMsgs', 'm1', m => ({ ...m, body: 'changed' })));
+  await put('e2', 'single', 'hr.rseq', () => 1);
+  assert.equal((await store.loadDocs()).docs.find(d => d.id === 'hr.rseq').body, 1);
+});
+
+test('CV files: HR adds, HR and the interviewer open', async () => {
+  const files = require('../lib/files');
+  const { store, put, no } = await boot();
+  const data64 = Buffer.from('%PDF-1.4 test').toString('base64'), add = (who, o) => files.add(store, user(who), { id: 'cv1', name: 'A cv.pdf', data: data64, ...o });
+  await no(add('e2'));
+  await no(add('e8', { name: 'x.html' }));
+  await no(add('e8', { name: 'x.svg' }));
+  await no(add('e8', { data: '<script>' }), 'bad_change');
+  await no(add('e8', { data: Buffer.alloc(5 * 1024 * 1024 + 1).toString('base64') }));
+  await add('e8');
+  await no(add('e8'), 'duplicate');
+  await no(files.get(store, user('e8'), 'cv1'), 'not_found');
+  await put('e8', 'hr.cands', 'c1', c => ({ ...c, cv: { id: 'cv1' } }));
+  assert.equal((await files.get(store, user('e8'), 'cv1')).type, 'application/pdf');
+  assert.equal((await files.get(store, user('e3'), 'cv1')).body.length, 13);
+  await no(files.get(store, user('e2'), 'cv1'), 'not_found');
+});
+test('a new person and the notice to them are saved together', async () => {
+  const { store, no } = await boot();
+  const d = { id: 'd2', name: 'D', isDriver: true, dept: 'Drivers', active: true, fin: {}, see: 'none' }, n = { id: 'n7', to: 'd2', text: 'hi' };
+  await no(data.save(store, user('e2'), [{ c: 'employees', id: 'd2', v: 0, body: d }, { c: 'notifications', id: 'n7', v: 0, body: n }]));
+  await data.save(store, user('e1'), [{ c: 'employees', id: 'd2', v: 0, body: d }, { c: 'notifications', id: 'n7', v: 0, body: n }]);
 });

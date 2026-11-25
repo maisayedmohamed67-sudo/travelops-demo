@@ -7,7 +7,7 @@ const data = require('../lib/data');
 const { places, tours, dest } = require('../site/content');
 const pages = require('../site/pages');
 
-const SEED = [['employees', 'e1', { id: 'e1', name: 'A', dept: 'Operations', active: true }], ['employees', 'e5', { id: 'e5', name: 'F', dept: 'Finance', active: true }], ['single', 'settings', {}],
+const SEED = [['employees', 'e1', { id: 'e1', name: 'A', dept: 'Operations', active: true, isAdmin: true }], ['employees', 'e5', { id: 'e5', name: 'F', dept: 'Finance', active: true }], ['single', 'settings', {}],
   ['requests', 'RQ-2020-1000', { id: 'RQ-2020-1000' }]].map(([c, id, body]) => ({ c, id, v: 0, body }));
 async function boot(t, opts = {}) {
   const store = memoryStore();
