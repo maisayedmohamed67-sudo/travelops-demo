@@ -36,7 +36,7 @@ test('amounts, dates and two-part texts are translated; data stays as it is', ()
   assert.equal(tr('due 6 Dec 2026'), 'مستحق 6 ديسمبر 2026');
   assert.equal(tr('overdue €1,939 · as of today'), 'متأخر €1,939 · حتى اليوم');
   assert.equal(tr('Not ready for pricing: Missing information: Number of passengers, Pickup location'), 'غير جاهز للتسعير: معلومات ناقصة: عدد الركاب، مكان الاستلام');
-  assert.equal(tr('Admin — every permission'), 'الإدارة — كل الصلاحيات');
+  assert.equal(tr('Bank — Cash'), 'البنك — نقدي');
   assert.equal(tr('Zamalek Palace Hotel, Cairo'), null);
   assert.equal(tr('⚠ Breached +1h 58m'), '⚠ تجاوز المهلة +1 س 58 د');
   assert.equal(tr('in 2h 43m'), 'خلال 2 س 43 د');

@@ -773,6 +773,19 @@ body.drv-mode .tsearch,body.drv-mode .top button[onclick="go('admin')"]{display:
 .umenu-list>a:hover,.umenu-list>button:hover,.umenu-list>a:focus-visible,.umenu-list>button:focus-visible{background:#f1f5f9;outline:none}
 .umenu-list>button:last-child{color:#b42318;border-top:1px solid var(--line);border-radius:0 0 7px 7px;margin-top:4px}
 .top .who{flex-wrap:nowrap}
+/* ---- v28 permissions ---- */
+.pm-grid .tblwrap,.pm-roles .tblwrap{overflow-x:auto}.pm-grid table{min-width:820px;table-layout:auto}.pm-grid td,.pm-grid th{vertical-align:middle;white-space:nowrap}.pm-grid td .pm-cats{white-space:normal;max-width:220px}.pm-roles table{min-width:560px}.pm-grid .c,.pm-roles .c{text-align:center}.pm-grid tr.off{opacity:.55}
+.pm-who{display:flex;gap:8px;align-items:center;min-width:170px}.pm-sel{min-width:150px}.pm-sel.off{color:var(--muted)}.pm-cats{margin-top:2px}
+.pm-x{display:inline-block;font-size:11px;background:#fef3c7;color:#92400e;border-radius:9px;padding:0 7px;cursor:pointer;font-weight:700}.pm-dot{color:#b45309}
+.pm-risks{display:flex;flex-direction:column;gap:6px;margin:0 0 12px}.pm-risk{border-radius:8px;padding:8px 12px;font-size:13px}
+.pm-risk.bad{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}.pm-risk.warn{background:#fffbeb;color:#92400e;border:1px solid #fde68a}.pm-risk.info{background:#f8fafc;color:#334155;border:1px solid var(--line)}
+.pm-tabs{margin:0 0 12px}.pm-hide{display:none!important}
+.pm-pills{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px}.pm-pills button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 12px;font:inherit;font-size:13px;cursor:pointer;color:var(--ink)}
+.pm-pills button.on{border:2px solid var(--accent);color:var(--accent);font-weight:700;padding:6px 11px}.pm-pills button:disabled{cursor:default}.pm-pills button:not(.on):disabled{opacity:.6}
+.pm-can{list-style:none;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:4px 16px;margin:6px 0 10px;font-size:13px}.pm-can.pm-one{grid-template-columns:1fr}
+.pm-can .y::before{content:'✓ ';color:#15803d;font-weight:700}.pm-can .n{color:var(--muted)}.pm-can .n::before{content:'✕ '}
+.pm-adv>summary{cursor:pointer;color:var(--accent);font-size:13px;margin:8px 0;font-weight:600}
+.pm-roles{margin-bottom:12px}.pm-roles .pm-g td{background:#f8fafc;font-weight:700;font-size:12px;color:var(--muted)}.pm-ppl{display:flex;justify-content:center;flex-wrap:wrap;gap:2px}
 </style>
 </head>
 <body>
@@ -5346,21 +5359,21 @@ function renderEmpPage(id){const u=me(),ad=u.isAdmin,e=emp(id);if(!e){$('#view')
    ${fld('Team leader',`<select class="ctl" id="epLeader" ${dis} onchange="empSet('${id}','leader',this.value)"><option value="">— no team —</option>${S.employees.filter(o=>o.id!==id&&empActive(o)&&!teamOf(id).includes(o.id)).map(o=>`<option value="${o.id}" ${e.leader===o.id?'selected':''}>${esc(o.name)}</option>`).join('')}</select>`)}
    ${fld('Work email (for the signature)',`<input class="ctl" id="epEmail" ${dis} value="${esc(e.email||'')}" placeholder="name@company.com" onchange="empSet('${id}','email',this.value)">`)}
    <div class="fld"><label>Admin</label><label class="flex small"><input type="checkbox" id="epAdmin" style="width:auto" ${dis} ${e.isAdmin?'checked':''} onchange="setAdmin('${id}',this.checked)"> Admin — every permission and all settings</label></div></div></section>`;
-  const sec2=`<section class="card ad-sec"><h3>Working hours</h3><div class="small muted">Reply timers on ${esc(e.name.split(' ')[0])}’s requests count only these working minutes.</div>
+  const sec2=`<section class="card ad-sec"><h3>Working hours</h3><div class="small muted">Reply timers on this person’s requests count only these working minutes.</div>
    <div class="ad-radios"><label class="ad-radio${h.mode!=='own'?' on':''}"><input type="radio" name="hm" ${dis} ${h.mode!=='own'?'checked':''} onchange="empHours('${id}','mode','company')"> Company hours <span class="small muted">${hoursTxt(w.days)}</span></label><label class="ad-radio${h.mode==='own'?' on':''}"><input type="radio" name="hm" id="epOwn" ${dis} ${h.mode==='own'?'checked':''} onchange="empHours('${id}','mode','own')"> Own shift</label></div>
    ${h.mode==='own'?daysEditor(days,`empDay('${id}',`,dis):''}
    <div class="ad-leave"><b>On leave</b>${(e.leave||[]).map((l,i)=>`<span class="ad-chip">${fmtDay(l.from)} – ${fmtDay(l.to)}${ad?`<button class="plx" aria-label="Remove leave" onclick="delLeave('${id}',${i})">✕</button>`:''}</span>`).join('')||'<span class="small muted">none planned</span>'}
     ${ad?`${dateBtn('lvf',window.__lvf||'',"window.__lvf=this.value;render()",{ph:'From'})}${dateBtn('lvt',window.__lvt||'',"window.__lvt=this.value;render()",{ph:'To',min:window.__lvf||''})}<button class="btn sm" id="epLeaveAdd" onclick="addLeave('${id}')">Add leave</button>`:''}</div>
    <div class="small muted">New requests aren’t given to someone on leave; their team leader is told about their open requests.</div></section>`;
   const opsSee=['own','team','all'].map(v=>{const role=v===or.see,on=e.see===v;return `<label class="ad-cb"><input type="radio" name="see" ${on?'checked':''} ${!ad||e.isAdmin||R.ops==='none'?'disabled':''} onchange="setFlag('${id}','see','${v}')"><span><b>${SEE_LBL[v]}</b>${role?lock('role default'):on&&SEE_RANK[v]>SEE_RANK[or.see]?EX:on?'<span class="ad-from">limited</span>':''}${v==='own'?'<br><span class="small muted">plus new unassigned requests</span>':''}</span></label>`}).join('');
-  const sec3=`<section class="card ad-sec"><h3>2 · Operations</h3><div class="ad-rs">${fld('Operations role',`<select class="ctl" id="epOps" ${dis||(e.isAdmin?'disabled':'')} onchange="setRole('${id}','ops',this.value)">${Object.entries(OPS_ROLES).map(([k,r])=>`<option value="${k}" ${R.ops===k?'selected':''}>${r.l}</option>`).join('')}</select>`)}<span class="small muted">The role gives a ready set. Tick more to give it to ${esc(e.name.split(' ')[0])} only.</span></div>
+  const sec3=`<section class="card ad-sec"><h3>2 · Operations</h3><div class="ad-rs">${fld('Operations role',`<select class="ctl" id="epOps" ${dis||(e.isAdmin?'disabled':'')} onchange="setRole('${id}','ops',this.value)">${Object.entries(OPS_ROLES).map(([k,r])=>`<option value="${k}" ${R.ops===k?'selected':''}>${r.l}</option>`).join('')}</select>`)}<span class="small muted">The role gives a ready set. Tick more to give it to this person only.</span></div>
    <div class="ad-cols"><div><div class="ad-gl">WHICH REQUESTS</div>${opsSee}</div><div><div class="ad-gl">WORK</div>${OPS_FLAGS.map(([k,l,s])=>cb(!!e[k],!!or.f[k],`setFlag('${id}','${k}',this.checked)`,l,s)).join('')}</div></div></section>`;
   const cats=Object.keys(SVC_TYPES);
-  const sec4=`<section class="card ad-sec"><h3>3 · Pricing</h3><div class="ad-rs">${fld('Pricing role',`<select class="ctl" id="epPrice" ${dis||(e.isAdmin?'disabled':'')} onchange="setRole('${id}','price',this.value)">${Object.entries(PRICE_ROLES).map(([k,r])=>`<option value="${k}" ${R.price===k?'selected':''}>${r.l}</option>`).join('')}</select>`)}<span class="small muted">Tick the services ${esc(e.name.split(' ')[0])} approves prices for.</span></div>
+  const sec4=`<section class="card ad-sec"><h3>3 · Pricing</h3><div class="ad-rs">${fld('Pricing role',`<select class="ctl" id="epPrice" ${dis||(e.isAdmin?'disabled':'')} onchange="setRole('${id}','price',this.value)">${Object.entries(PRICE_ROLES).map(([k,r])=>`<option value="${k}" ${R.price===k?'selected':''}>${r.l}</option>`).join('')}</select>`)}<span class="small muted">Tick the services this person approves prices for.</span></div>
    <div class="ad-catrow">${cats.map(c=>`<label class="ad-pill"><input type="checkbox" ${canPriceCat(e,c)?'checked':''} ${!ad||(R.price==='none'&&!e.isAdmin)?'disabled':''} onchange="togPricer('${c}','${id}',this.checked);admLog(${jsq('Pricing: '+SVC_TYPES[c]+' ')}+(this.checked?'given to':'removed from')+${jsq(' '+e.name)},{emp:'${id}'})">${esc(SVC_TYPES[c])}</label>`).join('')}</div>${R.price==='none'&&!e.isAdmin?'<div class="small muted">Choose a pricing role first.</div>':''}</section>`;
   const finEx=x.filter(i=>i.a==='fin');
   const sec5=`<section class="card ad-sec"><h3>4 · Finance</h3><div class="ad-rs">${fld('Finance role',`<select class="ctl" id="epFin" ${dis||(e.isAdmin?'disabled':'')} onchange="setRole('${id}','fin',this.value)">${Object.entries(FIN_ROLES).map(([k,r])=>`<option value="${k}" ${R.fin===k?'selected':''}>${r.l}</option>`).join('')}</select>`)}<span class="small muted">Rights from the role are ticked and greyed.</span></div>
-   ${finEx.length?`<div class="ad-exbar"><span class="ad-ex">+${finEx.length} EXTRA</span> ${esc(e.name.split(' ')[0])} has ${finEx.length} finance right(s) on top of the role: ${finEx.map(i=>i.l).join(', ')}.${ad?` <button class="linkbtn" onclick="removeExtras('${id}','fin')">Remove extras</button>`:''}</div>`:''}
+   ${finEx.length?`<div class="ad-exbar"><span class="ad-ex">+${finEx.length} EXTRA</span> <span>Finance rights on top of the role:</span> <span>${finEx.map(i=>i.l).join(', ')}</span>${ad?` <button class="linkbtn" onclick="removeExtras('${id}','fin')">Remove extras</button>`:''}</div>`:''}
    <div class="ad-cols">${FIN_GROUPS.map(([g,ks])=>`<div><div class="ad-gl">${g.toUpperCase()}</div>${ks.map(k=>cb(!!(e.fin||{})[k]||e.isAdmin,fr.k.includes(k),`setFlag('${id}','fin.${k}',this.checked)`,FIN_LBL[k])).join('')}</div>`).join('')}</div>
    ${(e.fin||{}).approveOut||(e.fin||{}).approveExp?`<div class="ad-lim"><b>Approval limits</b> <span class="small muted">blank = no limit</span>${[['supplier','Supplier payments','approveOut'],['expense','Expenses','approveExp']].filter(z=>(e.fin||{})[z[2]]).map(([k,l])=>`<div class="flex wrap small"><span style="width:130px">${l}</span>${CURRENCIES.map(c=>`<label>${c} <input class="ctl sm" style="width:84px" type="number" ${dis} value="${((e.finLimits||{})[k]||{})[c]??''}" onchange="setFinLimit('${id}','${k}','${c}',this.value)"></label>`).join('')}</div>`).join('')}</div>`:''}</section>`;
   const logs=(S.adminLog||[]).filter(l=>l.emp===id).slice(-6).reverse();
@@ -5917,6 +5930,98 @@ route=(function(o){return function(){if(location.hash==='#website'&&me()&&!isDri
 renderShell=(function(o){return function(){o();const u=me(),h=location.hash.slice(1),nav=$('#nav');if(!nav||!canWeb(u)||isFinRoute(h))return;
   if(!nav.querySelector('[data-web]')){const a=document.createElement('a');a.dataset.web='1';a.setAttribute('onclick',"go('website')");a.textContent='Website tours';const ref=nav.querySelector('[data-cars]')||[...nav.querySelectorAll('a')].find(x=>/Suppliers/.test(x.textContent));if(ref)ref.after(a);else nav.appendChild(a)}
   if(h==='website'){nav.querySelectorAll('a').forEach(a=>a.classList.toggle('on',!!a.dataset.web));$('#crumb').textContent='Website tours'}}})(renderShell);
+/* ===================== v28 — Permissions: one grid for everyone, employee page in tabs, editable roles, risk warnings ===================== */
+/* Roles changed on the Roles tab are kept in settings and applied to everyone with that role; rights given to one person stay. */
+function loadRoleDefs(){const d=(S.settings&&S.settings.roleDefs)||{};
+  Object.entries(d.ops||{}).forEach(([k,v])=>{const r=OPS_ROLES[k];if(!r||k==='none'||!v)return;if(v.f)OPS_FLAGS.forEach(([f])=>{if(typeof v.f[f]==='boolean')r.f[f]=v.f[f]});if(['own','team','all'].includes(v.see))r.see=v.see});
+  Object.entries(d.fin||{}).forEach(([k,v])=>{const r=FIN_ROLES[k];if(r&&k!=='none'&&Array.isArray(v))r.k=v.filter(x=>FIN_LBL[x])})}
+render=(function(o){return function(){try{loadRoleDefs()}catch(e){console.error(e)}o()}})(render);
+function applyRoleQuiet(e,area){const R=e.roles||{},X=e.xtra=e.xtra||{ops:[],fin:[]};
+  if(area==='ops'){const nr=OPS_ROLES[R.ops];if(!nr)return;OPS_FLAGS.forEach(([k])=>{e[k]=!!nr.f[k]||X.ops.includes(k)});e.see=X.ops.includes('see')&&SEE_RANK[e.see]>SEE_RANK[nr.see]?e.see:nr.see}
+  if(area==='fin'){const fr=FIN_ROLES[R.fin];if(!fr)return;e.fin={};fr.k.forEach(k=>e.fin[k]=true);X.fin.forEach(k=>e.fin[k]=true);e.canVerify=!!e.fin.verifyPay}
+  syncScope(e)}
+function setRoleDef(area,k,key,v){if(!admOK())return render();const st=S.settings,d=st.roleDefs=st.roleDefs||{};d.ops=d.ops||{};d.fin=d.fin||{};
+  if(area==='ops'){const r=OPS_ROLES[k],x=d.ops[k]=d.ops[k]||{f:{...r.f},see:r.see};if(key==='see')x.see=v;else x.f[key]=!!v}
+  else{const cur=new Set(FIN_ROLES[k].k);if(v)cur.add(key);else cur.delete(key);d.fin[k]=[...cur]}
+  loadRoleDefs();const ppl=S.employees.filter(e=>!e.isAdmin&&(e.roles||{})[area]===k);ppl.forEach(e=>applyRoleQuiet(e,area));S.employees.forEach(syncScope);
+  const T=area==='ops'?OPS_ROLES:FIN_ROLES,lbl=key==='see'?'Which requests':area==='ops'?OPS_FLAGS.find(f=>f[0]===key)[1].replace('&amp;','&'):FIN_LBL[key];
+  admLog(`Role changed · ${T[k].l}`,{old:'',new:`${lbl}: ${key==='see'?SEE_LBL[v]:v?'on':'off'} · ${ppl.length} people`});adminCommit();toast(`Role updated for ${ppl.length} people`)}
+/* ---------- risky combinations ---------- */
+function permRisks(e){if(!e||e.isAdmin||!empActive(e)||isDriver(e))return[];const f=e.fin||{},o=[];
+  if(f.regPay&&f.verifyPay&&f.selfApprove)o.push({lvl:'bad',t:'Registers and verifies customer payments, and may approve their own: the two-person check is skipped.'});
+  if(f.recSupPay&&f.approveOut&&f.selfApprove)o.push({lvl:'bad',t:'Records and approves supplier payments, and may approve their own.'});
+  if(f.recExp&&f.approveExp&&f.selfApprove)o.push({lvl:'bad',t:'Records and approves company expenses, and may approve their own.'});
+  if(f.approveOut&&!Object.values((e.finLimits||{}).supplier||{}).some(v=>v!==''&&v!=null))o.push({lvl:'warn',t:'Approves supplier payments with no limit.'});
+  if(f.reconcile&&f.approveRecon)o.push({lvl:'warn',t:'Reconciles bank statements and also approves the reconciliation.'});
+  if((e.roles||{}).ops==='leader'&&!teamOf(e.id).length)o.push({lvl:'info',t:'Team leader with nobody in the team yet.'});return o}
+function globalRisks(){const o=[];unpricedTypes().forEach(t=>o.push({lvl:'warn',t:`No pricing manager for this service: ${SVC_TYPES[t]}`}));
+  if(!S.employees.some(e=>empActive(e)&&!e.isAdmin&&(e.fin||{}).verifyPay))o.push({lvl:'info',t:'Only Admins can verify customer payments: nobody else has that right.'});
+  S.employees.forEach(e=>permRisks(e).filter(r=>r.lvl==='bad').forEach(r=>o.push({...r,who:e.name,id:e.id})));return o}
+const riskBox=L=>L.length?`<div class="pm-risks" role="status">${L.map(r=>`<div class="pm-risk ${r.lvl}">⚠ ${r.who?`<a class="lnk" onclick="openEmp('${r.id}')"><b data-no-tr>${esc(r.who)}</b></a>: `:''}<span>${esc(r.t)}</span></div>`).join('')}</div>`:'';
+['setRole','setFlag'].forEach(n=>{const o=window[n];window[n]=function(id,...a){const b=permRisks(emp(id)).map(r=>r.t);o(id,...a);const now=permRisks(emp(id)).filter(r=>r.lvl==='bad'&&!b.includes(r.t));if(now.length)toast(now[0].t,'warn')}});
+/* ---------- one grid for everyone ---------- */
+ADM.view='grid';
+function admGrid(L){const ad=me().isAdmin,dis=ad?'':'disabled';
+  const sel=(e,area,T)=>{const v=(e.roles||{})[area]||'none',x=extrasOf(e).filter(i=>i.a===area).length;return `<select class="ctl sm pm-sel${v==='none'?' off':''}" ${dis} aria-label="${area==='ops'?'Operations':area==='price'?'Pricing':'Finance'}" onchange="setRole('${e.id}','${area}',this.value)">${Object.entries(T).map(([k,r])=>`<option value="${k}" ${v===k?'selected':''}>${k==='none'?'—':r.l}</option>`).join('')}</select>${x?` <a class="pm-x" title="Extra rights for this person only" onclick="EMPT['${e.id}']='${area}';openEmp('${e.id}')">+${x}</a>`:''}`};
+  const cats=e=>Object.keys(SVC_TYPES).filter(c=>canPriceCat(e,c)).map(c=>SVC_TYPES[c]);
+  const rows=L.map(e=>{const rk=permRisks(e).filter(r=>r.lvl!=='info').length;
+    return `<tr class="${empActive(e)?'':'off'}" data-emp="${e.id}"><td><div class="pm-who">${avatar(e.id)}<div><a class="lnk" onclick="openEmp('${e.id}')"><b data-no-tr>${esc(e.name)}</b></a>${rk?' <span class="pm-dot" title="Check permissions">⚠</span>':''}<div class="small muted">${esc(e.role)}</div></div></div></td>
+     ${e.isAdmin?'<td colspan="4"><span class="ad-chip dark">Every permission</span></td>':`<td>${sel(e,'ops',OPS_ROLES)}</td><td>${sel(e,'price',PRICE_ROLES)}${(e.roles||{}).price!=='none'&&cats(e).length?`<div class="small muted pm-cats">${cats(e).map(c=>`<span>${esc(c)}</span>`).join(' · ')}</div>`:''}</td><td>${sel(e,'fin',FIN_ROLES)}</td><td class="c"><input type="checkbox" style="width:auto" ${dis} aria-label="HR access" ${e.hr?'checked':''} onchange="setHRAccess('${e.id}',this.checked);render()"></td>`}
+     <td class="c"><input type="checkbox" style="width:auto" ${dis} aria-label="Admin" ${e.isAdmin?'checked':''} onchange="setAdmin('${e.id}',this.checked);render()"></td></tr>`}).join('');
+  return `${riskBox(globalRisks())}<div class="card pm-grid"><div class="tblwrap"><table class="mini"><thead><tr><th>Employee</th><th>Operations</th><th>Pricing</th><th>Finance</th><th class="c">HR</th><th class="c">Admin</th></tr></thead><tbody>${rows||'<tr><td colspan="6"><div class="empty small">Nobody matches.</div></td></tr>'}</tbody></table></div>
+  <div class="small muted" style="margin-top:8px">Change a role right here; everything else is on the person’s page. “+1” = an extra right for that person only. ⚠ = check this person’s permissions.</div></div>`}
+admPeople=(function(o){return function(){const v=ADM.view,chip=`<button class="ca-chip dark${v==='grid'?' on':''}" data-av="grid" onclick="ADM.view='grid';render()">Permissions grid</button>`;
+  if(v!=='grid')return o().replace('<button class="ca-chip dark',()=>chip+'<button class="ca-chip dark');
+  ADM.view='role';const h=o();ADM.view='grid';const bar=h.split('<div class="ad-gh">')[0].replace('dark on" data-av="role"','dark" data-av="role"').replace('<button class="ca-chip dark',()=>chip+'<button class="ca-chip dark');
+  return bar+admGrid(admPeopleList())}})(admPeople);
+/* ---------- roles page ---------- */
+ADM_TABS.splice(1,0,['roles','Roles']);
+renderAdmin=(function(o){return function(){if(ADM.tab!=='roles')return o();ADM.tab='people';o();ADM.tab='roles';const ad=$('#view .ad'),tabs=ad&&ad.querySelector('.ad-tabs');if(!tabs)return;
+  while(tabs.nextSibling)tabs.nextSibling.remove();tabs.querySelectorAll('button').forEach(b=>{const on=b.dataset.at==='roles';b.classList.toggle('on',on);b.setAttribute('aria-selected',on)});tabs.insertAdjacentHTML('afterend',admRolesMatrix())}})(renderAdmin);
+function admRolesMatrix(){const ad=me().isAdmin,dis=ad?'':'disabled',act=S.employees.filter(e=>empActive(e)&&!e.isAdmin&&!isDriver(e));
+  const ppl=(area,k)=>{const L=act.filter(e=>(e.roles||{})[area]===k);return `<div class="pm-ppl">${L.map(e=>avatar(e.id)).join('')||'<span class="small muted">nobody</span>'}</div>`};
+  const ck=(on,fn,lbl)=>`<input type="checkbox" style="width:auto" ${dis} aria-label="${lbl}" ${on?'checked':''} onchange="${fn}">`;
+  const opsK=Object.keys(OPS_ROLES).filter(k=>k!=='none'),finK=Object.keys(FIN_ROLES).filter(k=>k!=='none');
+  const head=(K,T)=>`<thead><tr><th>Right</th>${K.map(k=>`<th class="c">${T[k].l}</th>`).join('')}</tr></thead>`;
+  const ops=`<section class="card pm-roles"><h3>Operations roles</h3><div class="tblwrap"><table class="mini">${head(opsK,OPS_ROLES)}<tbody>
+   <tr><td>Which requests</td>${opsK.map(k=>`<td class="c"><select class="ctl sm" ${dis} aria-label="Which requests" onchange="setRoleDef('ops','${k}','see',this.value)">${['own','team','all'].map(v=>`<option value="${v}" ${OPS_ROLES[k].see===v?'selected':''}>${SEE_LBL[v]}</option>`).join('')}</select></td>`).join('')}</tr>
+   ${OPS_FLAGS.map(([f,l])=>`<tr><td>${l}</td>${opsK.map(k=>`<td class="c">${ck(OPS_ROLES[k].f[f],`setRoleDef('ops','${k}','${f}',this.checked)`,l)}</td>`).join('')}</tr>`).join('')}
+   <tr class="pm-cnt"><td>People</td>${opsK.map(k=>`<td class="c">${ppl('ops',k)}</td>`).join('')}</tr></tbody></table></div></section>`;
+  const price=`<section class="card pm-roles"><h3>Pricing roles</h3><div class="small muted">Which services each person prices is ticked on their page.</div><div class="tblwrap"><table class="mini"><thead><tr><th>Right</th><th class="c">${PRICE_ROLES.pricer.l}</th><th class="c">${PRICE_ROLES.senior.l}</th></tr></thead><tbody>
+   <tr><td>Approves prices for their services</td><td class="c">✓</td><td class="c">✓</td></tr><tr><td>Sees all requests</td><td class="c muted">✕</td><td class="c">✓</td></tr>
+   <tr class="pm-cnt"><td>People</td><td class="c">${ppl('price','pricer')}</td><td class="c">${ppl('price','senior')}</td></tr></tbody></table></div></section>`;
+  const fin=`<section class="card pm-roles"><h3>Finance roles</h3><div class="tblwrap"><table class="mini">${head(finK,FIN_ROLES)}<tbody>
+   ${FIN_GROUPS.map(([g,ks])=>`<tr class="pm-g"><td colspan="${finK.length+1}">${g}</td></tr>${ks.map(p=>`<tr><td>${FIN_LBL[p]}</td>${finK.map(k=>`<td class="c">${ck(FIN_ROLES[k].k.includes(p),`setRoleDef('fin','${k}','${p}',this.checked)`,FIN_LBL[p])}</td>`).join('')}</tr>`).join('')}`).join('')}
+   <tr class="pm-cnt"><td>People</td>${finK.map(k=>`<td class="c">${ppl('fin',k)}</td>`).join('')}</tr></tbody></table></div></section>`;
+  return `<p class="small muted">${ad?'Change a role here and everyone with that role gets the change at once. Rights given to one person only stay as they are. Admins have every right.':'View only — Admin permission is needed to change roles.'}</p>${riskBox(globalRisks())}${ops}${price}${fin}`}
+/* ---------- one employee: tabs, role buttons, what they can do ---------- */
+let EMPT={};
+renderEmpPage=(function(o){return function(id){o(id);const e=emp(id),m=$('.ad-main'),u=me();if(!e||!m||isDriver(e))return;const ad=u.isAdmin,first=e.name.split(' ')[0],R=e.roles||{ops:'none',price:'none',fin:'none'},x=extrasOf(e);
+  const keyOf=s=>{const h=((s.querySelector('h3')||{}).textContent||'');return s.id==='epHR'?'hr':/Job/.test(h)?'job':/Working/.test(h)?'hours':/Operations/.test(h)?'ops':/Pricing/.test(h)?'price':/Finance/.test(h)?'fin':'job'};
+  const secs=[...m.children].filter(s=>s.matches('section,.card'));secs.forEach(s=>{s.dataset.pt=keyOf(s);const h=s.querySelector('h3');if(h)h.textContent=h.textContent.replace(/^\d+\s*·\s*/,'')});
+  const T=[['job','Job & team'],['ops','Operations'],['price','Pricing'],['fin','Finance'],['hr','HR'],['hours','Working hours']].filter(([k])=>secs.some(s=>s.dataset.pt===k));
+  let cur=EMPT[id];if(!T.some(t=>t[0]===cur))cur=e.isAdmin?'job':{Finance:'fin',Pricing:'price'}[e.dept]||'ops';
+  const nX=a=>x.filter(i=>i.a===a).length;
+  m.insertAdjacentHTML('afterbegin',`<div class="ca-tabs ad-tabs pm-tabs" role="tablist">${T.map(([k,l])=>`<button role="tab" aria-selected="${k===cur}" class="${k===cur?'on':''}" onclick="EMPT['${id}']='${k}';render()">${l}${nX(k)?` <span class="ad-badge">+${nX(k)}</span>`:''}</button>`).join('')}</div>`);
+  secs.forEach(s=>s.classList.toggle('pm-hide',s.dataset.pt!==cur));
+  const can=items=>`<ul class="pm-can">${items.map(([ok,t])=>`<li class="${ok?'y':'n'}">${t}</li>`).join('')}</ul>`;
+  const pills=(sel,area,TT)=>{const s=$('#'+sel);if(!s)return null;const f=s.closest('.fld')||s,dis=!ad||e.isAdmin,v=R[area]||'none',d=document.createElement('div');d.className='pm-pills';d.setAttribute('role','radiogroup');
+    d.innerHTML=Object.entries(TT).map(([k,r])=>`<button type="button" role="radio" aria-checked="${v===k}" class="${v===k?'on':''}" ${dis?'disabled':''} onclick="setRole('${id}','${area}','${k}')">${r.l}</button>`).join('');f.style.display='none';f.after(d);return d};
+  const adv=(sec,area)=>{const cols=sec&&sec.querySelector('.ad-cols');if(!cols)return;const d=document.createElement('details');d.className='pm-adv';if(nX(area))d.open=true;d.innerHTML=`<summary>⚙ Extra rights for this person only</summary>`;cols.before(d);d.appendChild(cols)};
+  if(!e.isAdmin){const so=m.querySelector('[data-pt="ops"]'),sf=m.querySelector('[data-pt="fin"]'),or=OPS_ROLES[R.ops]||OPS_ROLES.none;
+    const po=pills('epOps','ops',OPS_ROLES);if(po)po.insertAdjacentHTML('afterend',R.ops==='none'?can([[false,'Does not handle requests.']]):can([[true,SEE_LBL[e.see||'own']],...OPS_FLAGS.map(([k,l])=>[!!e[k],l])]));adv(so,'ops');
+    const pp=pills('epPrice','price',PRICE_ROLES),pc=Object.keys(SVC_TYPES).filter(c=>canPriceCat(e,c));if(pp)pp.insertAdjacentHTML('afterend',R.price==='none'?can([[false,'Does not price']]):can([...pc.map(c=>[true,SVC_TYPES[c]]),[R.price==='senior','Sees all requests']]));
+    const pf=pills('epFin','fin',FIN_ROLES),on=Object.keys(e.fin||{}).filter(k=>e.fin[k]&&FIN_LBL[k]);if(pf)pf.insertAdjacentHTML('afterend',on.length?can(FIN_GROUPS.map(([g,ks])=>{const n=ks.filter(k=>on.includes(k)).length;return[n>0,`${g}: ${n} / ${ks.length}`]})):can([[false,'No finance access']]));adv(sf,'fin');}
+  const risks=permRisks(e);const head=$('#view .ad-emp .wshead');if(head&&risks.length)head.insertAdjacentHTML('afterend',riskBox(risks));
+  const pl=$('#view .ad-plain');if(pl){const or=OPS_ROLES[R.ops]||OPS_ROLES.none,L=[];
+    if(e.isAdmin)L.push('<li class="y"><span>Every permission and all settings</span></li>');else{
+      L.push(R.ops!=='none'?`<li class="y"><span>Operations</span>: <b>${or.l}</b> · <span>${SEE_LBL[e.see||'own']}</span></li>`:'<li class="n"><span>Does not handle requests.</span></li>');
+      L.push(R.price!=='none'?`<li class="y"><span>Pricing</span>: <b>${PRICE_ROLES[R.price].l}</b></li>`:'<li class="n"><span>Does not price</span></li>');
+      L.push(R.fin!=='none'?`<li class="y"><span>Finance</span>: <b>${FIN_ROLES[R.fin].l}</b></li>`:'<li class="n"><span>No finance access</span></li>');
+      L.push(e.hr?'<li class="y"><span>HR access</span></li>':'');x.forEach(i=>L.push(`<li class="y"><span>Extra</span>: <span>${esc(i.l)}</span></li>`))}
+    if(e.leader&&emp(e.leader))L.push(`<li><span>Team leader</span>: <b data-no-tr>${esc(ename(e.leader))}</b></li>`);if(teamOf(id).length)L.push(`<li><span>Team</span>: <span data-no-tr>${teamOf(id).map(t=>esc(ename(t))).join(', ')}</span></li>`);
+    L.push(`<li><span>${(e.hours||{}).mode==='own'?'Own shift':'Company hours'}</span></li>`);if(onLeave(e))L.push('<li><b>On leave today</b></li>');if(!empActive(e))L.push('<li class="n"><b>Deactivated</b></li>');
+    pl.innerHTML=L.filter(Boolean).join('');pl.classList.add('pm-can','pm-one')}}})(renderEmpPage);
 /* the server's data is compared from here on: every section above has run its migration */
 if(AUTH){render();NET.start()}
 </script>

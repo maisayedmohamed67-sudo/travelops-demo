@@ -52,7 +52,7 @@
     var r = lookup(s);
     if (r !== null) return r;
     var m = s.match(/^([^\p{L}\p{N}#(]*)([\s\S]*?)([\s:…→*✕✓.]*)$/u);
-    if (m && m[2] && (m[1] || m[3])) { r = lookup(m[2]); if (r !== null) return m[1] + r + m[3].replace('→', '←'); }
+    if (m && m[2] && (m[1] || m[3])) { r = lookup(m[2]); if (r === null && m[2].length < s.length) r = translate(m[2]); if (r !== null) return m[1] + r + m[3].replace('→', '←'); }
     return null;
   }
   function translate(raw) {
