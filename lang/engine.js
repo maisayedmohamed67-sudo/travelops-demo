@@ -22,7 +22,10 @@
   // A date ("Wed 2 Dec, 09:00", "26 Nov 2026"), an amount ("€1,939", "−EGP 0") or a number stands for "#".
   var CUR = '(?:USD|EUR|EGP|GBP|AED|SAR)\\s?|[€$£]';
   var TOKEN = new RegExp('(?:(?:' + Object.keys(DAYS).join('|') + '),?\\s)?\\d{1,2}\\s(?:' + Object.keys(MONTHS).join('|') + ')\\b(?:,?\\s\\d{4})?(?:,?\\s\\d{1,2}:\\d{2})?'
-    + '|[+−-]?(?:' + CUR + ')\\d[\\d,.]*|\\d[\\d,.]*\\d|\\d', 'g');
+    + '|[+−-]?(?:' + CUR + ')\\d[\\d,.]*|\\d+[dhm](?:\\s\\d+[hm])?\\b|\\d[\\d,.]*\\d|\\d', 'g');
+  // A duration ("1h 58m", "3d") is shown with Arabic units.
+  var UNIT = { d: ' يوم', h: ' س', m: ' د' };
+  function token(n) { return /^\d+[dhm](\s\d+[hm])?$/.test(n) ? n.replace(/(\d+)([dhm])/g, function (x, v, u) { return v + UNIT[u]; }) : n.replace(WORDS, function (w) { return DAYS[w] || MONTHS[w]; }); }
 
   function withTokens(s) {
     var toks = s.match(TOKEN);
@@ -30,7 +33,7 @@
     var k = s.replace(TOKEN, '#');
     if (!has(DICT, k)) return null;
     var i = 0;
-    return DICT[k].replace(/#/g, function () { var n = toks[i++]; return n === undefined ? '' : n.replace(WORDS, function (w) { return DAYS[w] || MONTHS[w]; }); });
+    return DICT[k].replace(/#/g, function () { var n = toks[i++]; return n === undefined ? '' : token(n); });
   }
   function lookup(s) {
     if (has(DICT, s)) return DICT[s];
@@ -66,10 +69,12 @@
       var i = t.indexOf(': '), a = lookup(t.slice(0, i + 1)) || lookup(t.slice(0, i)), b = translate(t.slice(i + 2));
       if (a !== null) out = a.replace(/:$/, '') + ': ' + (b === null ? t.slice(i + 2) : b);
     }
-    if (out === null && t.indexOf(', ') > 0) {
-      var all = t.split(', ').map(lookup);
-      if (all.every(function (x) { return x !== null; })) out = all.join('، ');
-    }
+    // Lists ("Hotel + Other", "Rental end, Pickup location") are translated only when every item is known.
+    [[', ', '، '], [' + ', ' + ']].forEach(function (s) {
+      if (out !== null || t.indexOf(s[0]) <= 0) return;
+      var all = t.split(s[0]).map(lookup);
+      if (all.every(function (x) { return x !== null; })) out = all.join(s[1]);
+    });
     if (out === null) for (var p in DICT) if (p.slice(-1) === '~' && t.indexOf(p.slice(0, -1)) === 0 && t.length > p.length - 1) {
       var rest = t.slice(p.length - 1), q = one(rest);
       out = DICT[p].replace('~', function () { return q === null ? rest : q; });

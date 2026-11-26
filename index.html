@@ -233,7 +233,7 @@ button,input,select,textarea{color:var(--ink)}
 .svcrow{display:grid;grid-template-columns:30px minmax(0,1fr) 130px;gap:10px;align-items:center;padding:9px 12px}
 .svcells{display:grid;grid-template-columns:92px minmax(0,2.2fr) minmax(0,1.3fr) minmax(0,1.1fr) minmax(0,.9fr) minmax(0,1.9fr);gap:10px;align-items:center;min-width:0}
 .sc-title b,.sc-title div{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-.sc-badges{display:flex;flex-wrap:wrap;gap:4px}.sc-act{display:flex;gap:4px;justify-content:flex-end}
+.sc-badges{display:flex;flex-wrap:wrap;gap:4px;align-items:center}.sc-rest{display:none;gap:4px;flex-wrap:wrap}.sc-badges.all .sc-rest{display:flex}.sc-more{border:1px solid var(--line);background:#fff;border-radius:999px;font-size:11px;padding:0 7px;line-height:18px;color:var(--muted);cursor:pointer}.sc-more:hover{color:var(--ink)}.sc-act{display:flex;gap:4px;justify-content:flex-end}
 .missline{margin:0 12px 9px 52px;font-size:12px;color:var(--red);background:var(--red-bg);border-radius:6px;padding:5px 9px}
 .prline{margin:0 12px 9px 52px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .svcb{border-top:1px solid var(--line);padding:6px 16px 16px}
@@ -249,7 +249,10 @@ button,input,select,textarea{color:var(--ink)}
 .tblwrap{overflow-x:auto}
 /* request details */
 .rqws{max-width:1400px;padding-bottom:40px}
-.rqhead{position:sticky;top:52px;z-index:6;background:var(--bg);padding:8px 0 0;margin:-8px 0 12px}
+.rqhead{display:contents}.rqhead .stagebar{margin-bottom:12px}
+/* The stage path and the next-stage button stay in view while scrolling (like Odoo's status bar). */
+.rqhead .stagebar{position:sticky;top:var(--toph,53px);z-index:6;box-shadow:0 2px 8px rgba(15,23,42,.06)}
+.stg-next{margin-inline-start:6px;white-space:nowrap}
 .rqrow1{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.rqid{font-size:19px;font-weight:800;letter-spacing:-.01em}.rqcust{font-size:14.5px}.rqtitle{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:520px}
 .rqrow2{display:flex;gap:18px;flex-wrap:wrap;align-items:center;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-top:8px}
 .hm{display:flex;flex-direction:column;gap:2px}.hm>span:first-child{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700}
@@ -282,7 +285,7 @@ tr.rcpt td{background:#fafbfd;border-bottom:1px dashed var(--line)}
 .uq table td{vertical-align:middle}
 table.act td{vertical-align:top}
 @media (max-width:1180px){.svchead{display:none}.svcrow{grid-template-columns:30px minmax(0,1fr)}.sc-act{grid-column:1/-1;justify-content:flex-start}.svcells{grid-template-columns:repeat(2,minmax(0,1fr))}.wsgrid{grid-template-columns:1fr}.tiles6{grid-template-columns:repeat(3,1fr)}.segrow{grid-template-columns:repeat(2,minmax(0,1fr))}.segrow .snum{grid-column:1/-1}.sumgrid{grid-template-columns:repeat(2,1fr)}.missline,.prline{margin-inline-start:12px}}
-@media (max-width:760px){.rqhead{top:0;position:static}.tiles4,.tiles6{grid-template-columns:repeat(2,1fr)}.paxrow,.paxrow.t3{grid-template-columns:1fr 1fr}.dt{grid-template-columns:1fr}.svcells{grid-template-columns:1fr}.rqtitle{max-width:100%}}
+@media (max-width:760px){.rqhead .stagebar{flex-wrap:nowrap;overflow-x:auto}.rqhead .stagebar .stg.aux{display:none}.tiles4,.tiles6{grid-template-columns:repeat(2,1fr)}.paxrow,.paxrow.t3{grid-template-columns:1fr 1fr}.dt{grid-template-columns:1fr}.svcells{grid-template-columns:1fr}.rqtitle{max-width:100%}}
 
 .wsmain,.wsside{min-width:0}
 /* ===== v5 Operations Dashboard ===== */
@@ -762,6 +765,14 @@ body.drv-mode .tsearch,body.drv-mode .top button[onclick="go('admin')"]{display:
 .ctl.cf-bad{border-color:#dc2626!important;background:#fef2f2;box-shadow:0 0 0 2px rgba(220,38,38,.15)}
 
 [hidden]{display:none!important}[dir=rtl] .kv>*,[dir=rtl] .svcrow *,[dir=rtl] td *{unicode-bidi:plaintext}[dir=rtl] .srow.isurgent,[dir=rtl] .srow.islate{box-shadow:inset -3px 0 0 #dc2626}[dir=rtl] body{font-family:Inter,"Segoe UI",Tahoma,Arial,sans-serif}
+/* ---- account menu (signed in) ---- */
+.umenu{position:relative}.umenu>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px;max-width:220px}.umenu>summary::-webkit-details-marker{display:none}
+.umenu .un{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;color:var(--ink)}
+.umenu-list{position:absolute;inset-inline-end:0;top:calc(100% + 6px);min-width:190px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(15,23,42,.12);padding:6px;z-index:30;display:flex;flex-direction:column}
+.umenu-list>a,.umenu-list>button{all:unset;box-sizing:border-box;display:block;padding:8px 10px;border-radius:7px;cursor:pointer;color:var(--ink);font-size:14px;text-align:start}
+.umenu-list>a:hover,.umenu-list>button:hover,.umenu-list>a:focus-visible,.umenu-list>button:focus-visible{background:#f1f5f9;outline:none}
+.umenu-list>button:last-child{color:#b42318;border-top:1px solid var(--line);border-radius:0 0 7px 7px;margin-top:4px}
+.top .who{flex-wrap:nowrap}
 </style>
 </head>
 <body>
@@ -1376,21 +1387,25 @@ function renderShell(){
   const it=(k,label,click,extra='')=>`<a class="${pg===k?'on':''}" onclick="${click}">${label}${extra}</a>`;
   if(isFinRoute(h)||(h==='admin'&&FINADMIN)){$('#nav').innerHTML=finNav(u);$('#crumb').textContent='Finance · '+((FIN_PAGES.find(x=>x[0]===h)||[0,h.startsWith('fintx-')?'Transaction '+h.slice(6).toUpperCase():'Admin & Permissions'])[1]);$('#who').innerHTML=S.employees.filter(e=>e.active!==false||e.id===S.settings.currentUser).map(e=>`<option value="${e.id}" ${e.id===S.settings.currentUser?'selected':''}>${esc(e.name)} — ${esc(e.role)}${e.isAdmin?' (Admin)':''}</option>`).join('');const un=S.notifications.filter(n=>n.to===u.id&&!n.read).length;$('#bell').innerHTML=`🔔${un?` <span class="badge b-red" style="padding:0 6px">${un}</span>`:''}`;if(NP)renderNotif();return}
   FINADMIN=false;
-  $('#nav').innerHTML=wsSwitch(u)+it('dash','Operations Dashboard',"go()")+
-    it('requests','All Requests',"go('requests')")+
-    it('det','Request Details',"openLastReq()")+(pg==='new-request'?it('new-request','New Request','',` <span class="tag ndtag" style="display:${ND&&ND.dirty?'':'none'}">unsaved</span>`):'')+
-    it('pricing','Pricing Approvals',"go('pricing')",q?` <span class="tag hot">${q}</span>`:'')+
+  // Each person sees only what their permissions use: managers get the team pages, everyone else starts on My Work.
+  const mgr=isMgr(u)||u.isAdmin,pricer=Object.keys(SVC_TYPES).some(c=>canPriceCat(u,c)),ndTag=` <span class="tag ndtag" style="display:${ND&&ND.dirty?'':'none'}">unsaved</span>`;
+  $('#nav').innerHTML=wsSwitch(u)+it('dash',mgr?'Operations Dashboard':'My Work',"go()")+
+    it(mgr||pg!=='det'?'requests':'det','All Requests',"go('requests')")+
+    (mgr?it('det','Request Details',"openLastReq()")+(pg==='new-request'?it('new-request','New Request','',ndTag):''):isOps(u)?it('new-request','New Request',"go('new-request')",pg==='new-request'?ndTag:''):'')+
+    (mgr||pricer?it('pricing','Pricing Approvals',"go('pricing')",q?` <span class="tag hot">${q}</span>`:''):'')+
     it('suppliers','Suppliers',"go('suppliers')",sq&&u.isAdmin?` <span class="tag hot">${sq}</span>`:'')+
-    it('reports','Reports',"go('reports')")+
-    it('admin','Admin & Permissions',"go('admin')")+
+    (mgr?it('reports','Reports',"go('reports')"):'')+
+    (u.isAdmin?it('admin','Admin & Permissions',"go('admin')"):'')+
     `<a ${AUTH?'hidden':''} onclick="resetDemo()" style="margin-top:18px;color:#8796b0">↺ Reset demo data</a>`;
   $('#who').innerHTML=S.employees.filter(e=>e.active!==false||e.id===S.settings.currentUser).map(e=>`<option value="${e.id}" ${e.id===S.settings.currentUser?'selected':''}>${esc(e.name)} — ${esc(e.role)}${e.isAdmin?' (Admin)':''}</option>`).join('');
-  $('#crumb').textContent=h.startsWith('prv-')?'Pricing Approvals · Review':h.startsWith('sup-')?'Suppliers · '+(supById(h.slice(4))?.name||''):onDet?`Request Details · ${h.toUpperCase()}`:h.startsWith('customer-')?'Customer file':{requests:'All Requests','new-request':'New Request',pricing:'Pricing Approvals',suppliers:'Suppliers',reports:'Reports',admin:'Admin & Permissions'}[h]||'Operations Dashboard';
+  $('#crumb').textContent=h.startsWith('prv-')?'Pricing Approvals · Review':h.startsWith('sup-')?'Suppliers · '+(supById(h.slice(4))?.name||''):onDet?`Request Details · ${h.toUpperCase()}`:h.startsWith('customer-')?'Customer file':{requests:'All Requests','new-request':'New Request',pricing:'Pricing Approvals',suppliers:'Suppliers',reports:'Reports',admin:'Admin & Permissions'}[h]||(mgr?'Operations Dashboard':'My Work');
   const un=S.notifications.filter(n=>n.to===u.id&&!n.read).length;
   $('#bell').innerHTML=`🔔${un?` <span class="badge b-red" style="padding:0 6px">${un}</span>`:''}`;
   if(NP)renderNotif();
 }
-function render(){if(!me()){$('#view').innerHTML='<div class="card empty">This account is not linked to an employee yet. Ask your Admin.</div>';return}route()}
+function setTopH(){const b=document.querySelector('.top');if(b)document.documentElement.style.setProperty('--toph',getComputedStyle(b).position==='sticky'?b.offsetHeight+'px':'0px')}
+addEventListener('resize',setTopH);
+function render(){setTimeout(setTopH);if(!me()){$('#view').innerHTML='<div class="card empty">This account is not linked to an employee yet. Ask your Admin.</div>';return}route()}
 async function signOut(){try{await fetch('/api/logout',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})}finally{location.replace('/login')}}
 function switchUser(id){if(AUTH)return deny('Sign out to use another account');S.settings.currentUser=id;NP=false;save();const u=me(),h=location.hash.slice(1);if(isFinRoute(h)&&!hasFin(u))location.hash='dashboard';else if(hasFin(u)&&!isOps(u)&&!isFinRoute(h))location.hash='fin';render();toast(`Now viewing as ${me().name}`)}
 function scopeText(u){let t=u.scope==='all'?'can view all requests':u.scope==='own'?'can view own requests only':'can view own requests + '+(u.visible.map(v=>ename(v)).join(', ')||'nobody else');
@@ -1771,7 +1786,13 @@ function svcRowCells(s){const c=completeness(s),pr=s.pricing||{state:'Not submit
    <div class="sc-dates small">${esc(svcDates(s))||'<span class="muted">No dates</span>'}</div>
    <div class="sc-qty small">${esc(qtyText(s))||'<span class="muted">—</span>'}</div>
    <div class="sc-cost small">${costKnown(s)?`<b>${money(s.cost,s.currency)}</b>`:'<span class="amber">Awaiting cost</span>'}</div>
-   <div class="sc-badges"><span class="badge b-${SVC_COLOR[s.status]}">${s.status}</span><span class="badge b-${PR_COLOR[pr.state]}">${pr.state==='Not submitted'?'Not priced':pr.state==='Approved'?'Price approved':pr.state}</span>${c.ok?'<span class="badge b-green">Complete</span>':`<span class="badge b-red" title="${esc(c.missing.map(x=>x.l).join(', '))}">Incomplete · ${c.missing.length}</span>`}</div>`}
+   ${svcBadges(s,c,pr)}`}
+/* One main status in colour (the one that needs action first); the others open with “+N”. */
+function svcBadges(s,c,pr){const B=(l,col,tip)=>`<span class="badge b-${col}"${tip?` title="${esc(tip)}"`:''}>${esc(l)}</span>`,
+  sv=B(s.status,SVC_COLOR[s.status]||'gray'),pv=B(pr.state==='Not submitted'?'Not priced':pr.state==='Approved'?'Price approved':pr.state==='Pending'?'Pending approval':pr.state,PR_COLOR[pr.state]||'gray'),
+  cv=c.ok?B('Complete','green'):B(`Incomplete · ${c.missing.length}`,'red',c.missing.map(x=>x.l).join(', '));
+  const late=['Booked','Confirmed','Cancelled'].includes(s.status),order=late?[sv,pv,cv]:pr.state==='Rejected'||pr.state==='Clarification'||pr.state==='Reapproval required'?[pv,cv,sv]:!c.ok?[cv,pv,sv]:pr.state==='Not submitted'?[pv,sv,cv]:[pv,sv,cv];
+  return `<div class="sc-badges">${order[0]}<button type="button" class="sc-more" aria-expanded="false" onclick="event.stopPropagation();const o=this.parentNode.classList.toggle('all');this.setAttribute('aria-expanded',o)">+${order.length-1}</button><span class="sc-rest">${order.slice(1).join('')}</span></div>`}
 function missingLine(s){const c=completeness(s);return c.ok?'':`<div class="missline">Incomplete — missing information: ${c.missing.map(x=>`<b>${esc(x.l)}</b>`).join(', ')}</div>`}
 function titleRow(s,ctx){const B=SB(s,ctx),canC=isOps(me())||me().isAdmin;
   return s.titleCustom?`<div class="titlerow"><span class="small muted">Title</span>${B.tx('title',{ph:'Service title'})}<button type="button" class="btn sm ghost" onclick="${ctx.act('autoTitle','')}">Use automatic title</button></div>`
@@ -2001,7 +2022,7 @@ function renderDetails(id){
    </div>
    <nav class="stagebar" aria-label="Workspaces">${STAGE_KEYS.map(stageBtn).join('<span class="sep">›</span>')}<span class="grow"></span>
      <button type="button" class="stg aux${v.tab==='comms'?' view':''}" onclick="dvTab('${r.id}','comms')">✉ Communications <span class="cnt">${r.thread.length}</span></button>
-     <button type="button" class="stg aux${v.tab==='activity'?' view':''}" onclick="dvTab('${r.id}','activity')">🕘 Activity & History <span class="cnt">${r.activity.length}</span></button></nav>
+     <button type="button" class="stg aux${v.tab==='activity'?' view':''}" onclick="dvTab('${r.id}','activity')">🕘 Activity & History <span class="cnt">${r.activity.length}</span></button>${(()=>{const nx=STAGES[STAGES.indexOf(r.stage)+1];return nx&&!ro?`<button type="button" class="btn primary sm stg-next" onclick="openAdvance('${r.id}','${nx}')">Move to ${nx} →</button>`:''})()}</nav>
   </div>
   ${ro?`<div class="infobox small rok">Finance view — read-only. You can see everything on this request; changes are made by Operations. Payments are verified in Finance.</div>`:''}
   ${STAGE_KEYS.includes(v.tab)&&v.tab!==STAGE_KEYS[si]?`<div class="viewnote">This request is now in <b>${r.stage}</b> <button class="btn sm rok" onclick="dvTab('${r.id}','${STAGE_KEYS[si]}')">Go to current stage</button></div>`:''}
@@ -3833,7 +3854,15 @@ const NET=(()=>{
     addEventListener('beforeunload',e=>{if(N.ready&&changes().length){N.push();e.preventDefault();e.returnValue=''}})};
   return N})();
 load();
-if(AUTH){S.settings.currentUser=AUTH.empId;const w=document.querySelector('.who'),ft=document.querySelector('.side .foot');if(ft)ft.remove();w.innerHTML=`<button class="btn sm" data-no-tr onclick="setUiLang(UI_LANG==='ar'?'en':'ar')">${window.UI_LANG==='ar'?'English':'العربية'}</button> <b data-no-tr>${esc(AUTH.name)}</b>${AUTH.isAdmin?' <a class="lnk" href="/accounts">Accounts</a>':''} <button class="btn sm" onclick="signOut()">Sign out</button><select id="who" hidden></select>`}
+/* Signed in: language, accounts, admin and sign out sit in one menu under the person's name, so the top bar fits small screens. */
+if(AUTH){S.settings.currentUser=AUTH.empId;const w=document.querySelector('.who'),ft=document.querySelector('.side .foot'),adm=document.querySelector('.top button[onclick="go(\'admin\')"]');if(ft)ft.remove();if(adm)adm.remove();
+  w.innerHTML=`<details class="umenu" id="umenu"><summary class="btn sm" aria-label="Account menu"><span class="un" data-no-tr>${esc(AUTH.name)}</span> ▾</summary><div class="umenu-list" role="menu">
+    <button role="menuitem" data-no-tr onclick="setUiLang(UI_LANG==='ar'?'en':'ar')">${window.UI_LANG==='ar'?'English':'العربية'}</button>
+    ${AUTH.isAdmin?'<a role="menuitem" href="/accounts">Accounts</a><button role="menuitem" onclick="umenuClose();go(\'admin\')">Admin & Permissions</button>':''}
+    <button role="menuitem" onclick="signOut()">Sign out</button></div></details><select id="who" hidden></select>`;
+  document.addEventListener('click',e=>{const m=$('#umenu');if(m&&m.open&&!m.contains(e.target))m.open=false});
+  document.addEventListener('keydown',e=>{const m=$('#umenu');if(e.key==='Escape'&&m&&m.open){m.open=false;m.querySelector('summary').focus()}})}
+function umenuClose(){const m=$('#umenu');if(m)m.open=false}
 let LAST_HASH=location.hash.slice(1),NAV_SKIP=false;
 window.addEventListener('hashchange',()=>{const h=location.hash.slice(1);
   if(NAV_SKIP){NAV_SKIP=false;LAST_HASH=h;return}

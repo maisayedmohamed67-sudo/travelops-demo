@@ -38,6 +38,10 @@ test('amounts, dates and two-part texts are translated; data stays as it is', ()
   assert.equal(tr('Not ready for pricing: Missing information: Number of passengers, Pickup location'), 'غير جاهز للتسعير: معلومات ناقصة: عدد الركاب، مكان الاستلام');
   assert.equal(tr('Admin — every permission'), 'الإدارة — كل الصلاحيات');
   assert.equal(tr('Zamalek Palace Hotel, Cairo'), null);
+  assert.equal(tr('⚠ Breached +1h 58m'), '⚠ تجاوز المهلة +1 س 58 د');
+  assert.equal(tr('in 2h 43m'), 'خلال 2 س 43 د');
+  assert.equal(tr('Hotel + Other'), 'فندق + أخرى');
+  assert.equal(tr('Hurghada – 4 rooms, 3 nights + airport transfers'), null, 'a title is never half translated');
   assert.ok(dict['Revenue = approved selling price. # services not priced yet are left out.'], 'an English text may contain " = "');
 });
 
