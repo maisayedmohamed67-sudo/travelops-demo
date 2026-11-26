@@ -2,8 +2,9 @@
    Arabic interface: texts are translated when they appear on screen. The data, the code and what is saved stay as they are.
    DICT comes from lang/ar.txt. Only whole texts (or their " · " parts) are translated, never words inside someone's text. */
 (function () {
-  var KEY = 'travelops-lang', lang = 'en';
-  try { if (localStorage.getItem(KEY) === 'ar') lang = 'ar'; } catch (e) { /* private window */ }
+  // Arabic unless the person chose English (same default as the sign-in page).
+  var KEY = 'travelops-lang', lang = 'ar';
+  try { if (localStorage.getItem(KEY) === 'en') lang = 'en'; } catch (e) { /* private window */ }
   window.UI_LANG = lang;
   window.setUiLang = function (l) { try { localStorage.setItem(KEY, l); } catch (e) { /* private window */ } location.reload(); };
   if (lang !== 'ar') return;
